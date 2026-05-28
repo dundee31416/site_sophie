@@ -1,0 +1,70 @@
+# CI/CD Pipeline for Lisons! (site_sophie)
+steps:
+  - name: build-web
+    image: plugins/docker
+    settings:
+      repo: ghcr.io/dundee31416/site_sophie
+      registry: ghcr.io
+      dockerfile: Dockerfile
+      context: .
+      tags:
+        - latest
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  - name: prepare-deploy-dir
+    image: appleboy/drone-ssh
+    settings:
+      host:
+        from_secret: deploy_host
+      username:
+        from_secret: deploy_user
+      key:
+        from_secret: deploy_key
+      port: 22
+      script:
+        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/covers
+        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/scans
+        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/authors
+
+  - name: copy-compose
+    image: appleboy/drone-scp
+    settings:
+      host:
+        from_secret: deploy_host
+      username:
+        from_secret: deploy_user
+      key:
+        from_secret: deploy_key
+      port: 22
+      source: docker-compose.prod.yml
+      target: /tmp
+      strip_components: 0
+
+  - name: deploy
+    image: appleboy/drone-ssh
+    settings:
+      host:
+        from_secret: deploy_host
+      username:
+        from_secret: deploy_user
+      key:
+        from_secret: deploy_key
+      port: 22
+      envs:
+        - DOCKER_USERNAME
+        - DOCKER_PASSWORD
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
+        - mv /tmp/docker-compose.prod.yml /mnt/ssd_pool/apps_data/site_sophie/docker-compose.prod.yml
+        - cd /mnt/ssd_pool/apps_data/site_sophie
+        - docker compose -f docker-compose.prod.yml pull
+        - docker compose -f docker-compose.prod.yml down
+        - docker compose -f docker-compose.prod.yml up -d
+    environment:
+      DOCKER_USERNAME:
+        from_secret: docker_username
+      DOCKER_PASSWORD:
+        from_secret: docker_password

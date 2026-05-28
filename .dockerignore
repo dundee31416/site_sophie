@@ -1,0 +1,22 @@
+.git
+.gitignore
+.gitattributes
+.idea
+.claude
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Asset folders are mounted as volumes in prod, not baked into the image.
+covers
+scans
+authors
+
+# Compose + CI files don't need to be inside the image.
+docker-compose.yml
+docker-compose.prod.yml
+.woodpecker.yml
+.dockerignore
+Dockerfile
