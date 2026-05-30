@@ -54,10 +54,19 @@ function Reader({ book, author, openMode, onClose }) {
         <div className="page-frame">
           <div key={mode + "-" + page} className={"page-inner " + (dir > 0 ? "page-flip-enter" : "page-flip-back")}>
             {mode === "digital" ? (
-              <div className="digital-page">
-                <IlloSlot label={pageData.illoLabel} color={book.color} />
-                <div className="page-text">{pageData.text}</div>
-              </div>
+              pageData.html ? (
+                <iframe
+                  className="html-page"
+                  src={pageData.html}
+                  title={`${book.title} — page ${page + 1}`}
+                  sandbox="allow-same-origin allow-scripts"
+                />
+              ) : (
+                <div className="digital-page">
+                  <IlloSlot label={pageData.illoLabel} color={book.color} />
+                  <div className="page-text">{pageData.text}</div>
+                </div>
+              )
             ) : (
               <ScannedPage book={book} pageIndex={page} total={total} />
             )}

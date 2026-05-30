@@ -13,6 +13,7 @@ Thumbs.db
 covers
 scans
 authors
+digital
 
 # Compose + CI files don't need to be inside the image.
 docker-compose.yml

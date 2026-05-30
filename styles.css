@@ -341,3 +341,13 @@ button { font-family:inherit; cursor:pointer; border:none; background:none; colo
   object-fit:contain; background:#fff;
   border-radius:4px;
 }
+
+/* HTML-as-page: iframe filling the page frame. */
+.html-page {
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  background:#fff;
+  border:3px solid var(--ink); border-radius:8px;
+  box-shadow:8px 9px 0 rgba(47,42,38,.85);
+  display:block;
+}

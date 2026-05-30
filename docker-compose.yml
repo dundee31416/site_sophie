@@ -8,4 +8,5 @@ services:
       - ./covers:/usr/share/nginx/html/covers:ro
       - ./scans:/usr/share/nginx/html/scans:ro
       - ./authors:/usr/share/nginx/html/authors:ro
+      - ./digital:/usr/share/nginx/html/digital:ro
     restart: unless-stopped

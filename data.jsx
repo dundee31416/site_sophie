@@ -16,15 +16,15 @@ const AUTHORS = [
   {
     id: "sophie",
     name: "Sophie",
-    age: 8,
+    age: 9,
     color: CRAYON.purple,
-    bio: "Sophie a 8 ans et invente des histoires depuis qu'elle sait tenir un crayon. Elle adore les dragons, les licornes et tout ce qui brille. Quand elle ne dessine pas, elle construit des cabanes dans le jardin.",
+    bio: "Sophie a 9 ans et invente des histoires depuis qu'elle sait tenir un crayon. Elle adore les dragons, les licornes et tout ce qui brille. Quand elle ne dessine pas, elle construit des cabanes dans le jardin.",
     favo: "Les histoires qui font un peu peur (mais pas trop).",
   },
   {
     id: "alice",
     name: "Alice",
-    age: 6,
+    age: 9,
     color: CRAYON.teal,
     bio: "Alice a 6 ans et dessine surtout des animaux : des chats qui volent, des poissons qui parlent et des chiens présidents. Elle signe toujours ses dessins d'un petit soleil dans le coin.",
     favo: "Les animaux rigolos et les fins heureuses.",
@@ -32,8 +32,12 @@ const AUTHORS = [
 ];
 
 // Helper to build a digital page (a spread shown one at a time).
-function p(text, { illo = true, illoLabel = "dessin" } = {}) {
-  return { text, illo, illoLabel };
+// Three ways to define a page:
+//   p("text", { illoLabel: "..." })       -> standard layout: text + illustration slot
+//   p("text", { html: "digital/<book>/p1.html" })  -> render the HTML file in the digital view
+//   p(null,   { html: "digital/<book>/p1.html" })  -> HTML only, no fallback text
+function p(text, { illo = true, illoLabel = "dessin", html = null } = {}) {
+  return { text, illo, illoLabel, html };
 }
 
 const BOOKS = [
@@ -50,10 +54,9 @@ const BOOKS = [
       p("Il était une fois une petite fille qui s'appelait Lou. Sa grand-mère venait de partir au ciel, et Lou était très très triste.", { illoLabel: "Lou qui pleure" }),
       p("Le jour de l'enterrement, il pleuvait. Tout le monde portait des habits gris. Lou serrait fort la main de son papa.", { illoLabel: "la famille sous la pluie" }),
       p("Soudain, un petit papillon orange s'est posé sur l'épaule de Lou. Il n'avait pas du tout peur de la pluie.", { illoLabel: "le papillon orange" }),
-      p("« Coucou Lou », chuchota le papillon. « C'est moi, mamie. Je suis venue te dire au revoir comme il faut. »", { illoLabel: "Lou surprise" }),
+      p(null, { html: "digital/grand-mere/p4.html" }),
       p("Ils ont volé ensemble au-dessus des nuages. En bas, le soleil revenait doucement sur le cimetière.", { illoLabel: "vol au-dessus des nuages" }),
       p("« Je serai toujours là », dit mamie-papillon. « Dans le vent, dans les fleurs, et dans ton cœur. »", { illoLabel: "le cœur de Lou" }),
-      p("Le lendemain, Lou souriait à nouveau. Sur sa fenêtre, il y avait un petit papillon orange. Fin.", { illoLabel: "le papillon à la fenêtre" }),
     ],
   },
   {

@@ -16,7 +16,8 @@ Thumbs.db
 .env.*
 !.env.example
 
-# Local asset folders — the real scans/photos belong on the prod host, not in git.
+# Local asset folders — the real scans/photos/HTML belong on the prod host, not in git.
 covers/
 scans/
 authors/
+digital/
