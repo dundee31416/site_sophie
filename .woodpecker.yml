@@ -1,12 +1,30 @@
 # CI/CD Pipeline for Lisons! (site_sophie)
+# Builds backend + frontend Docker images, pushes to GHCR, and deploys to the
+# TrueNAS host over SSH. Legacy single-image static-site pipeline replaced in
+# Phase 1-5 of the FastAPI + React refactor.
 steps:
-  - name: build-web
+  - name: build-backend
     image: plugins/docker
     settings:
-      repo: ghcr.io/dundee31416/site_sophie
+      repo: ghcr.io/dundee31416/site_sophie-backend
       registry: ghcr.io
-      dockerfile: Dockerfile
-      context: .
+      dockerfile: backend/Dockerfile
+      context: backend
+      tags:
+        - latest
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  - name: build-frontend
+    image: plugins/docker
+    settings:
+      repo: ghcr.io/dundee31416/site_sophie-frontend
+      registry: ghcr.io
+      dockerfile: frontend/Dockerfile
+      context: frontend
+      target: production
       tags:
         - latest
       username:
@@ -25,9 +43,8 @@ steps:
         from_secret: deploy_key
       port: 22
       script:
-        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/covers
-        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/scans
-        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/authors
+        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/pg_data
+        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/storage
 
   - name: copy-compose
     image: appleboy/drone-scp
@@ -60,9 +77,10 @@ steps:
         - echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
         - mv /tmp/docker-compose.prod.yml /mnt/ssd_pool/apps_data/site_sophie/docker-compose.prod.yml
         - cd /mnt/ssd_pool/apps_data/site_sophie
+        - test -f .env || (echo "FATAL: /mnt/ssd_pool/apps_data/site_sophie/.env is missing — create it from .env.production.example before deploying." && exit 1)
         - docker compose -f docker-compose.prod.yml pull
-        - docker compose -f docker-compose.prod.yml down
-        - docker compose -f docker-compose.prod.yml up -d
+        - docker compose -f docker-compose.prod.yml up -d --remove-orphans
+        - docker image prune -f
     environment:
       DOCKER_USERNAME:
         from_secret: docker_username

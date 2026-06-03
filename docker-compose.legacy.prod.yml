@@ -1,0 +1,14 @@
+services:
+  web:
+    image: ghcr.io/dundee31416/site_sophie:latest
+    container_name: site_sophie_web
+    ports:
+      - "${WEB_PORT:-80}:80"
+    volumes:
+      # Asset folders live on the host so new scans/photos/HTML appear without rebuilding.
+      # Drop files into ./covers, ./scans/<book-id>/, ./authors, ./digital/<book-id>/ on the prod host.
+      - ./covers:/usr/share/nginx/html/covers:ro
+      - ./scans:/usr/share/nginx/html/scans:ro
+      - ./authors:/usr/share/nginx/html/authors:ro
+      - ./digital:/usr/share/nginx/html/digital:ro
+    restart: unless-stopped

@@ -51,12 +51,12 @@ const BOOKS = [
     isNew: true,
     blurb: "Il était une fois une petite fille très triste… et un papillon qui change tout.",
     pages: [
-      p("Il était une fois une petite fille qui s'appelait Lou. Sa grand-mère venait de partir au ciel, et Lou était très très triste.", { illoLabel: "Lou qui pleure" }),
-      p("Le jour de l'enterrement, il pleuvait. Tout le monde portait des habits gris. Lou serrait fort la main de son papa.", { illoLabel: "la famille sous la pluie" }),
-      p("Soudain, un petit papillon orange s'est posé sur l'épaule de Lou. Il n'avait pas du tout peur de la pluie.", { illoLabel: "le papillon orange" }),
+      p(null, { html: "digital/grand-mere/p1.html" }),
+      p(null, { html: "digital/grand-mere/p2.html" }),
+      p(null, { html: "digital/grand-mere/p3.html" }),
       p(null, { html: "digital/grand-mere/p4.html" }),
-      p("Ils ont volé ensemble au-dessus des nuages. En bas, le soleil revenait doucement sur le cimetière.", { illoLabel: "vol au-dessus des nuages" }),
-      p("« Je serai toujours là », dit mamie-papillon. « Dans le vent, dans les fleurs, et dans ton cœur. »", { illoLabel: "le cœur de Lou" }),
+      p(null, { html: "digital/grand-mere/p5.html" }),
+      p(null, { html: "digital/grand-mere/p6.html" }),
     ],
   },
   {

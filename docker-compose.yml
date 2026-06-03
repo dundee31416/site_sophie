@@ -1,12 +1,63 @@
 services:
-  web:
-    build: .
-    container_name: site_sophie_web
-    ports:
-      - "8080:80"
+  postgres:
+    image: postgres:16-alpine
+    container_name: site_sophie_pg
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lisons}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lisons}
+      POSTGRES_DB: ${POSTGRES_DB:-lisons}
     volumes:
-      - ./covers:/usr/share/nginx/html/covers:ro
-      - ./scans:/usr/share/nginx/html/scans:ro
-      - ./authors:/usr/share/nginx/html/authors:ro
-      - ./digital:/usr/share/nginx/html/digital:ro
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lisons} -d ${POSTGRES_DB:-lisons}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: site_sophie_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-lisons}:${POSTGRES_PASSWORD:-lisons}@postgres:5432/${POSTGRES_DB:-lisons}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-not-secret}
+      STORAGE_ROOT: /data/storage
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      PUBLIC_BASE_URL: http://localhost:8000
+    volumes:
+      - ./backend:/app
+      - storage_data:/data/storage
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: site_sophie_frontend
+    depends_on:
+      - backend
+    environment:
+      VITE_API_TARGET: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  storage_data:
+  frontend_node_modules:

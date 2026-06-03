@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv
+ENV
+env
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+coverage
+
+# Documentation
+*.md
+!README.md
+
+# Environment (never bake secrets into images)
+.env
+.env.local
+.env.production
+
+# OS
+.DS_Store
+Thumbs.db

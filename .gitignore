@@ -4,6 +4,26 @@
 *.swp
 *.swo
 
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# Storage volume target (host data, mounted in containers)
+backend/data/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -15,9 +35,14 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Local asset folders — the real scans/photos/HTML belong on the prod host, not in git.
 covers/
 scans/
 authors/
 digital/
+
+# Tool workspace output (Gemini enhance/extract scripts), not in git.
+drawings/
+enhanced/
