@@ -74,13 +74,18 @@ steps:
         - DOCKER_USERNAME
         - DOCKER_PASSWORD
       script:
-        - docker login ghcr.io -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
-        - mv /tmp/docker-compose.prod.yml /mnt/ssd_pool/apps_data/site_sophie/docker-compose.prod.yml
-        - cd /mnt/ssd_pool/apps_data/site_sophie
-        - test -f .env
-        - docker compose -f docker-compose.prod.yml pull
-        - docker compose -f docker-compose.prod.yml up -d --remove-orphans
-        - docker image prune -f
+        - |
+          bash <<'DEPLOY_SCRIPT_END'
+          set -e
+          echo "=== deploy script v4 starting ==="
+          docker login ghcr.io -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+          mv /tmp/docker-compose.prod.yml /mnt/ssd_pool/apps_data/site_sophie/docker-compose.prod.yml
+          cd /mnt/ssd_pool/apps_data/site_sophie
+          test -f .env || { echo "FATAL: .env missing in apps_data/site_sophie"; exit 1; }
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d --remove-orphans
+          docker image prune -f
+          DEPLOY_SCRIPT_END
     environment:
       DOCKER_USERNAME:
         from_secret: docker_username
