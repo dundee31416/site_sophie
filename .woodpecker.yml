@@ -74,7 +74,7 @@ steps:
         - DOCKER_USERNAME
         - DOCKER_PASSWORD
       script:
-        - echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
+        - docker login ghcr.io -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
         - mv /tmp/docker-compose.prod.yml /mnt/ssd_pool/apps_data/site_sophie/docker-compose.prod.yml
         - cd /mnt/ssd_pool/apps_data/site_sophie
         - test -f .env
