@@ -77,7 +77,7 @@ steps:
         - echo "$DOCKER_PASSWORD" | docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
         - mv /tmp/docker-compose.prod.yml /mnt/ssd_pool/apps_data/site_sophie/docker-compose.prod.yml
         - cd /mnt/ssd_pool/apps_data/site_sophie
-        - test -f .env || (echo "FATAL: /mnt/ssd_pool/apps_data/site_sophie/.env is missing — create it from .env.production.example before deploying." && exit 1)
+        - test -f .env
         - docker compose -f docker-compose.prod.yml pull
         - docker compose -f docker-compose.prod.yml up -d --remove-orphans
         - docker image prune -f
