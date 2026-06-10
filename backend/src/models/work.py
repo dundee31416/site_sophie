@@ -13,6 +13,11 @@ class WorkSection(str, enum.Enum):
     drawing = "drawing"
 
 
+class DigitalVariant(str, enum.Enum):
+    enhanced = "enhanced"
+    restyled = "restyled"
+
+
 class Work(Base):
     __tablename__ = "works"
     __table_args__ = (UniqueConstraint("author_id", "slug", name="uq_works_author_slug"),)
@@ -32,6 +37,16 @@ class Work(Base):
     shape: Mapped[str | None] = mapped_column(String(32), nullable=True)
     color: Mapped[str | None] = mapped_column(String(16), nullable=True)
     cover_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    enhanced_cover_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    restyled_cover_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    digital_variant: Mapped[DigitalVariant | None] = mapped_column(
+        Enum(DigitalVariant, name="digital_variant"), nullable=True
+    )
+    cover_variant: Mapped[DigitalVariant | None] = mapped_column(
+        Enum(DigitalVariant, name="digital_variant", create_type=False), nullable=True
+    )
+    cover_enhance_pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    cover_restyle_pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -29,12 +29,15 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-lisons}:${POSTGRES_PASSWORD:-lisons}@postgres:5432/${POSTGRES_DB:-lisons}
       JWT_SECRET: ${JWT_SECRET:-dev-only-not-secret}
       STORAGE_ROOT: /data/storage
+      INBOX_ROOT: /data/inbox
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       PUBLIC_BASE_URL: http://localhost:8000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - ./backend:/app
       - storage_data:/data/storage
+      - inbox_data:/data/inbox
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -60,4 +63,5 @@ services:
 volumes:
   pg_data:
   storage_data:
+  inbox_data:
   frontend_node_modules:

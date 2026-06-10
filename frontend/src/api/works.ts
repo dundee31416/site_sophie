@@ -2,12 +2,19 @@ import { apiFetch, ApiError } from "./client";
 
 export type WorkSection = "book" | "comic" | "drawing";
 
+export type DigitalVariant = "enhanced" | "restyled";
+
 export interface PageResponse {
   id: number;
   idx: number;
   scan_path: string | null;
   html_path: string | null;
   illo_label: string | null;
+  enhanced_path: string | null;
+  restyled_path: string | null;
+  text: string | null;
+  enhance_pending: boolean;
+  transcribe_pending: boolean;
 }
 
 export interface WorkResponse {
@@ -22,8 +29,29 @@ export interface WorkResponse {
   shape: string | null;
   color: string | null;
   cover_path: string | null;
+  enhanced_cover_path: string | null;
+  restyled_cover_path: string | null;
+  digital_variant: DigitalVariant | null;
+  cover_variant: DigitalVariant | null;
+  cover_enhance_pending: boolean;
+  cover_restyle_pending: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export function effectiveCoverPath(work: {
+  cover_path: string | null;
+  enhanced_cover_path: string | null;
+  restyled_cover_path: string | null;
+  cover_variant: DigitalVariant | null;
+}): string | null {
+  if (work.cover_variant === "enhanced" && work.enhanced_cover_path != null) {
+    return work.enhanced_cover_path;
+  }
+  if (work.cover_variant === "restyled" && work.restyled_cover_path != null) {
+    return work.restyled_cover_path;
+  }
+  return work.cover_path;
 }
 
 export interface WorkDetailResponse extends WorkResponse {
@@ -46,6 +74,8 @@ export interface UpdateWorkRequest {
   is_new?: boolean;
   shape?: string | null;
   color?: string | null;
+  digital_variant?: DigitalVariant | null;
+  cover_variant?: DigitalVariant | null;
 }
 
 export function listMyWorks(): Promise<WorkResponse[]> {
@@ -96,6 +126,20 @@ export function uploadCover(workId: number, file: File): Promise<WorkResponse> {
   return uploadMultipart<WorkResponse>(`/api/me/works/${workId}/cover`, form);
 }
 
+export function enhanceCover(workId: number): Promise<WorkResponse> {
+  return apiFetch<WorkResponse>(`/api/me/works/${workId}/cover/enhance`, { method: "POST" });
+}
+
+export function restyleCover(
+  workId: number,
+  extraInstructions?: string,
+): Promise<WorkResponse> {
+  return apiFetch<WorkResponse>(`/api/me/works/${workId}/cover/restyle`, {
+    method: "POST",
+    body: { extra_instructions: extraInstructions?.trim() || null },
+  });
+}
+
 export function uploadPages(workId: number, files: File[]): Promise<PageResponse[]> {
   const form = new FormData();
   for (const f of files) form.append("files", f);
@@ -113,8 +157,69 @@ export function deletePage(workId: number, pageId: number): Promise<void> {
   return apiFetch<void>(`/api/me/works/${workId}/pages/${pageId}`, { method: "DELETE" });
 }
 
+export function updatePageText(
+  workId: number,
+  pageId: number,
+  text: string | null,
+): Promise<PageResponse> {
+  return apiFetch<PageResponse>(`/api/me/works/${workId}/pages/${pageId}`, {
+    method: "PATCH",
+    body: { text },
+  });
+}
+
+export function transcribePage(workId: number, pageId: number): Promise<PageResponse> {
+  return apiFetch<PageResponse>(`/api/me/works/${workId}/pages/${pageId}/transcribe`, {
+    method: "POST",
+  });
+}
+
+export function enhancePage(workId: number, pageId: number): Promise<PageResponse> {
+  return apiFetch<PageResponse>(`/api/me/works/${workId}/pages/${pageId}/enhance`, {
+    method: "POST",
+  });
+}
+
+export function restylePage(
+  workId: number,
+  pageId: number,
+  extraInstructions?: string,
+): Promise<PageResponse> {
+  return apiFetch<PageResponse>(`/api/me/works/${workId}/pages/${pageId}/restyle`, {
+    method: "POST",
+    body: { extra_instructions: extraInstructions?.trim() || null },
+  });
+}
+
+export function movePage(
+  srcWorkId: number,
+  pageId: number,
+  dstWorkId: number,
+): Promise<PageResponse> {
+  return apiFetch<PageResponse>(
+    `/api/me/works/${srcWorkId}/pages/${pageId}/move-to/${dstWorkId}`,
+    { method: "POST" },
+  );
+}
+
+export function splitWorkAtPage(
+  workId: number,
+  pageId: number,
+  title?: string,
+): Promise<WorkResponse> {
+  return apiFetch<WorkResponse>(`/api/me/works/${workId}/pages/${pageId}/split`, {
+    method: "POST",
+    body: { title: title?.trim() || null },
+  });
+}
+
 export const SECTION_LABELS: Record<WorkSection, string> = {
   book: "Livre",
   comic: "Bande dessinée",
   drawing: "Dessin",
+};
+
+export const VARIANT_LABELS: Record<DigitalVariant, string> = {
+  enhanced: "Améliorée",
+  restyled: "Redessinée",
 };

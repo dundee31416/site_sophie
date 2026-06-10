@@ -45,6 +45,7 @@ steps:
       script:
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/pg_data
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/storage
+        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/inbox
 
   - name: copy-compose
     image: appleboy/drone-scp

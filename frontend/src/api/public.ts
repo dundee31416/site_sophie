@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { WorkSection, PageResponse } from "./works";
+import type { DigitalVariant, WorkSection, PageResponse } from "./works";
 
 export interface PublicAuthor {
   username: string;
@@ -23,6 +23,10 @@ export interface PublicWorkSummary {
   shape: string | null;
   color: string | null;
   cover_path: string | null;
+  enhanced_cover_path: string | null;
+  restyled_cover_path: string | null;
+  digital_variant: DigitalVariant | null;
+  cover_variant: DigitalVariant | null;
   first_page_path: string | null;
   updated_at: string;
 

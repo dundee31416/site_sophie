@@ -30,6 +30,12 @@ const SECTION_TITLES: Record<WorkSection, { h1: string; sub: string }> = {
 };
 
 function BookCard({ work }: { work: PublicWorkSummary }) {
+  const effectiveCover =
+    work.cover_variant === "enhanced" && work.enhanced_cover_path != null
+      ? work.enhanced_cover_path
+      : work.cover_variant === "restyled" && work.restyled_cover_path != null
+        ? work.restyled_cover_path
+        : work.cover_path;
   return (
     <Link
       to={`/lecture/${work.author_username}/${work.slug}`}
@@ -45,7 +51,7 @@ function BookCard({ work }: { work: PublicWorkSummary }) {
             title: work.title,
             color: work.color,
             shape: work.shape,
-            cover_path: work.cover_path,
+            cover_path: effectiveCover,
           }}
           author={{
             username: work.author_username,

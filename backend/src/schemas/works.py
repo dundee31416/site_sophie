@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.models import WorkSection
+from src.models import DigitalVariant, WorkSection
 
 
 class CreateWorkRequest(BaseModel):
@@ -21,6 +21,8 @@ class UpdateWorkRequest(BaseModel):
     is_new: bool | None = None
     shape: str | None = Field(default=None, max_length=32)
     color: str | None = Field(default=None, max_length=16)
+    digital_variant: DigitalVariant | None = None
+    cover_variant: DigitalVariant | None = None
 
 
 class PageResponse(BaseModel):
@@ -31,6 +33,11 @@ class PageResponse(BaseModel):
     scan_path: str | None
     html_path: str | None
     illo_label: str | None
+    enhanced_path: str | None
+    restyled_path: str | None
+    text: str | None
+    enhance_pending: bool
+    transcribe_pending: bool
 
 
 class WorkResponse(BaseModel):
@@ -47,6 +54,12 @@ class WorkResponse(BaseModel):
     shape: str | None
     color: str | None
     cover_path: str | None
+    enhanced_cover_path: str | None
+    restyled_cover_path: str | None
+    digital_variant: DigitalVariant | None
+    cover_variant: DigitalVariant | None
+    cover_enhance_pending: bool
+    cover_restyle_pending: bool
     created_at: datetime
     updated_at: datetime
 
@@ -57,3 +70,11 @@ class WorkDetailResponse(WorkResponse):
 
 class ReorderPagesRequest(BaseModel):
     page_ids: list[int] = Field(min_length=1)
+
+
+class UpdatePageTextRequest(BaseModel):
+    text: str | None = Field(default=None, max_length=10000)
+
+
+class RestyleRequest(BaseModel):
+    extra_instructions: str | None = Field(default=None, max_length=4000)

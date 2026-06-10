@@ -26,6 +26,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRE_DAYS: ${JWT_EXPIRE_DAYS:-7}
       STORAGE_ROOT: /data/storage
+      INBOX_ROOT: /data/inbox
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
@@ -33,8 +34,10 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
       CORS_ORIGINS: '${CORS_ORIGINS:-[]}'
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     volumes:
       - ./storage:/data/storage
+      - ./inbox:/data/inbox
     restart: unless-stopped
 
   frontend:

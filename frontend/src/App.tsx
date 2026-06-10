@@ -1,10 +1,13 @@
+import { useEffect, useState } from "react";
 import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import * as pendingApi from "./api/pending";
 import { useAuth } from "./auth/AuthContext";
 import { HomePage } from "./pages/public/HomePage";
 import { WorkReader } from "./pages/public/WorkReader";
 import { LoginPage } from "./pages/auth/LoginPage";
 import { AdminAuthors } from "./pages/admin/AdminAuthors";
 import { Dashboard } from "./pages/author/Dashboard";
+import { PendingTray } from "./pages/author/PendingTray";
 import { ProfileEdit } from "./pages/author/ProfileEdit";
 import { UploadWizard } from "./pages/author/UploadWizard";
 import { WorkEdit } from "./pages/author/WorkEdit";
@@ -14,6 +17,30 @@ function TopNav() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Poll the pending tray count for authors so the nav badge stays current.
+  useEffect(() => {
+    if (user?.role !== "author") {
+      setPendingCount(0);
+      return;
+    }
+    let cancelled = false;
+    async function refresh() {
+      try {
+        const list = await pendingApi.listPending();
+        if (!cancelled) setPendingCount(list.length);
+      } catch {
+        // ignore — keeps the previous count
+      }
+    }
+    void refresh();
+    const t = setInterval(() => void refresh(), 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [user?.role, user?.id]);
 
   // The public reader handles its own header; suppress the global top nav
   // while inside one to avoid double-bars.
@@ -31,6 +58,9 @@ function TopNav() {
       </Link>
       {user?.role === "admin" && <Link to="/admin/authors">Auteurs</Link>}
       {user?.role === "author" && <Link to="/me/dashboard">Mon espace</Link>}
+      {user?.role === "author" && pendingCount > 0 && (
+        <Link to="/me/pending">À organiser ({pendingCount})</Link>
+      )}
       <div className="spacer" />
       {user == null ? (
         <Link to="/login">Se connecter</Link>
@@ -85,6 +115,14 @@ export function App() {
           element={
             <ProtectedRoute role="author">
               <UploadWizard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/me/pending"
+          element={
+            <ProtectedRoute role="author">
+              <PendingTray />
             </ProtectedRoute>
           }
         />

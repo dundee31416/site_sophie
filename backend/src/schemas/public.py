@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from src.models import WorkSection
+from src.models import DigitalVariant, WorkSection
 from src.schemas.works import PageResponse
 
 
@@ -30,6 +30,10 @@ class PublicWorkSummary(BaseModel):
     shape: str | None
     color: str | None
     cover_path: str | None
+    enhanced_cover_path: str | None
+    restyled_cover_path: str | None
+    digital_variant: DigitalVariant | None
+    cover_variant: DigitalVariant | None
     first_page_path: str | None
     updated_at: datetime
 

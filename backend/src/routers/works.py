@@ -1,22 +1,34 @@
 import shutil
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from src.ai.enhance import enhance_image
+from src.ai.restyle import restyle_image
 from src.auth.deps import CurrentUser
 from src.config.settings import settings
 from src.database.session import get_db
-from src.models import Work
+from src.models import Work, WorkSection
 from src.schemas.works import (
     CreateWorkRequest,
+    RestyleRequest,
     UpdateWorkRequest,
     WorkDetailResponse,
     WorkResponse,
 )
-from src.storage import author_dir, cover_path, work_dir
+from src.services import auto_ai
+from src.storage import (
+    author_dir,
+    cover_path,
+    enhanced_cover_path,
+    restyled_cover_path,
+    url_to_disk,
+    work_dir,
+)
 from src.util import IMAGE_EXTS, file_ext, save_upload, slugify, storage_url
 
 router = APIRouter(prefix="/api/me/works", tags=["works"])
@@ -120,6 +132,7 @@ def upload_cover(
     work_id: int,
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
     file: Annotated[UploadFile, File()],
 ) -> Work:
     work = _get_owned_work(work_id, user.id, db)
@@ -131,6 +144,59 @@ def upload_cover(
             old.unlink()
     save_upload(file, dest)
     work.cover_path = storage_url(dest, settings.STORAGE_ROOT)
+
+    # Auto-AI on books + comics covers (drawings don't have separate covers).
+    if work.section in (WorkSection.book, WorkSection.comic):
+        work.cover_enhance_pending = True
+        work.cover_restyle_pending = True
+
+    db.commit()
+    db.refresh(work)
+
+    if work.section in (WorkSection.book, WorkSection.comic):
+        background_tasks.add_task(auto_ai.run_cover_enhance, work.id)
+        background_tasks.add_task(auto_ai.run_cover_restyle, work.id)
+
+    return work
+
+
+def _original_cover_disk(work: Work) -> Path:
+    if work.cover_path is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Work has no cover to process",
+        )
+    return url_to_disk(work.cover_path, settings.STORAGE_ROOT)
+
+
+@router.post("/{work_id}/cover/enhance", response_model=WorkResponse)
+def enhance_cover(
+    work_id: int,
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> Work:
+    work = _get_owned_work(work_id, user.id, db)
+    src = _original_cover_disk(work)
+    dst = enhanced_cover_path(user.username, work.slug)
+    enhance_image(src, dst)
+    work.enhanced_cover_path = storage_url(dst, settings.STORAGE_ROOT)
+    db.commit()
+    db.refresh(work)
+    return work
+
+
+@router.post("/{work_id}/cover/restyle", response_model=WorkResponse)
+def restyle_cover(
+    work_id: int,
+    user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    payload: RestyleRequest | None = None,
+) -> Work:
+    work = _get_owned_work(work_id, user.id, db)
+    src = _original_cover_disk(work)
+    dst = restyled_cover_path(user.username, work.slug)
+    restyle_image(src, dst, payload.extra_instructions if payload else None)
+    work.restyled_cover_path = storage_url(dst, settings.STORAGE_ROOT)
     db.commit()
     db.refresh(work)
     return work

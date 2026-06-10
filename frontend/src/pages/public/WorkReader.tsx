@@ -2,9 +2,63 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import * as publicApi from "../../api/public";
 import type { PublicWorkDetail } from "../../api/public";
+import type { PageResponse } from "../../api/works";
 import { Icon } from "../../components/icons";
 
 type Mode = "digital" | "scan";
+type VariantField = "enhanced_path" | "restyled_path" | null;
+
+function renderDigital(
+  page: PageResponse,
+  workTitle: string,
+  pageIdx: number,
+  variantField: VariantField,
+) {
+  // Legacy: an HTML file already laid out as a page.
+  if (page.html_path != null) {
+    return (
+      <iframe
+        className="html-page"
+        src={page.html_path}
+        title={`${workTitle} — page ${pageIdx + 1}`}
+        sandbox="allow-same-origin allow-scripts"
+      />
+    );
+  }
+
+  const variantSrc = variantField != null ? page[variantField] : null;
+  const imageSrc = variantSrc ?? page.scan_path;
+  const text = page.text;
+
+  return (
+    <div className="digital-page">
+      {imageSrc != null && (
+        <img
+          className="digital-image"
+          src={imageSrc}
+          alt={`${workTitle} — page ${pageIdx + 1}`}
+        />
+      )}
+      {text != null && text !== "" && (
+        <div className="digital-text">
+          {text.split(/\n\s*\n/).map((para, i) => (
+            <p key={i}>
+              {para.split("\n").map((line, j, lines) => (
+                <span key={j}>
+                  {line}
+                  {j < lines.length - 1 && <br />}
+                </span>
+              ))}
+            </p>
+          ))}
+        </div>
+      )}
+      {imageSrc == null && (text == null || text === "") && (
+        <p style={{ padding: 30 }}>{page.illo_label ?? "(page vide)"}</p>
+      )}
+    </div>
+  );
+}
 
 export function WorkReader() {
   const { author, slug } = useParams<{ author: string; slug: string }>();
@@ -32,6 +86,16 @@ export function WorkReader() {
 
   const total = work?.pages.length ?? 0;
   const hasAnyHtml = work?.pages.some((p) => p.html_path != null) ?? false;
+  const hasAnyText = work?.pages.some((p) => p.text != null && p.text !== "") ?? false;
+  const variantField =
+    work?.digital_variant === "enhanced"
+      ? "enhanced_path"
+      : work?.digital_variant === "restyled"
+        ? "restyled_path"
+        : null;
+  const hasAnyVariantImage =
+    variantField != null && (work?.pages.some((p) => p[variantField] != null) ?? false);
+  const hasDigitalContent = hasAnyHtml || hasAnyText || hasAnyVariantImage;
 
   const go = useCallback(
     (d: 1 | -1) => {
@@ -128,7 +192,7 @@ export function WorkReader() {
               {work.author_age != null ? `, ${work.author_age} ans` : ""}
             </div>
           </div>
-          {hasAnyHtml && (
+          {hasDigitalContent && (
             <div className="mode-toggle" data-mode={mode}>
               <span
                 className="mode-pill"
@@ -167,13 +231,8 @@ export function WorkReader() {
             >
               {page == null ? (
                 <p>Aucune page</p>
-              ) : mode === "digital" && page.html_path != null ? (
-                <iframe
-                  className="html-page"
-                  src={page.html_path}
-                  title={`${work.title} — page ${pageIdx + 1}`}
-                  sandbox="allow-same-origin allow-scripts"
-                />
+              ) : mode === "digital" ? (
+                renderDigital(page, work.title, pageIdx, variantField)
               ) : page.scan_path != null ? (
                 <div className="scan-slot">
                   <div className="scan-tape scan-tape-l" />

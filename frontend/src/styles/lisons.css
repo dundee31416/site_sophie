@@ -643,6 +643,44 @@
 .lisons-public .scan-tape-l { top: -8px; left: 18px; transform: rotate(-7deg); }
 .lisons-public .scan-tape-r { top: -8px; right: 18px; transform: rotate(6deg); }
 
+/* digital page: enhanced/restyled image + transcribed text below */
+.lisons-public .digital-page {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  border: 3px solid var(--pub-ink);
+  border-radius: 8px;
+  box-shadow: 8px 9px 0 rgba(47, 42, 38, .85);
+  padding: 18px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.lisons-public .digital-image {
+  flex: 0 1 auto;
+  width: 100%;
+  max-height: 55%;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.lisons-public .digital-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  font-family: var(--hand);
+  font-size: clamp(17px, 1.9vw, 22px);
+  line-height: 1.38;
+  color: var(--pub-ink);
+}
+
+.lisons-public .digital-text p {
+  margin: 0 0 10px;
+}
+
 /* html iframe page */
 .lisons-public .html-page {
   position: absolute;
