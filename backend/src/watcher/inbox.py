@@ -56,6 +56,18 @@ STABILITY_SECONDS = 2
 # After detecting a file, wait this long before processing.
 DEBOUNCE_SECONDS = 1
 
+# OS-generated noise files dropped by Windows/Mac/Linux file browsers when
+# the host shares the inbox over SMB/NFS. Silently ignored: no error log,
+# not moved to _errors. We delete them so they don't keep re-firing events.
+_NOISE_FILENAMES = {
+    "Thumbs.db",
+    "thumbs.db",
+    "desktop.ini",
+    ".DS_Store",
+    "ehthumbs.db",
+    "ehthumbs_vista.db",
+}
+
 
 class InboxHandler(FileSystemEventHandler):
     def __init__(self) -> None:
@@ -121,6 +133,14 @@ def _move_to_errors(path: Path) -> None:
 
 def process_inbox_file(path: Path) -> None:
     """Ingest one file at <INBOX_ROOT>/<author>/<section>/<filename>."""
+    # Silently drop OS-generated noise (Windows thumbnail cache, Mac DS_Store, ...).
+    if path.name in _NOISE_FILENAMES or path.name.startswith("."):
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            logger.exception("inbox: failed to delete noise file %s", path)
+        return
+
     try:
         rel = path.relative_to(settings.INBOX_ROOT)
     except ValueError:
@@ -180,19 +200,34 @@ def _unique_slug(base: str, author_id: int, db) -> str:
 
 def _ingest_drawing(db, user: User, src: Path, ext: str) -> None:
     title = f"Dessin du {_date_fr()}"
-    slug = _unique_slug(slugify(title), user.id, db)
-    work = Work(
-        author_id=user.id,
-        section=WorkSection.drawing,
-        slug=slug,
-        title=title,
-    )
-    db.add(work)
-    try:
-        db.flush()
-    except IntegrityError:
-        db.rollback()
-        logger.exception("inbox: failed to create drawing work for %s", src)
+    # Race between SELECT (in _unique_slug) and INSERT can let two concurrent
+    # ingests pick the same slug. Retry a handful of times against the unique
+    # constraint before giving up.
+    base = slugify(title)
+    work: Work | None = None
+    last_exc: Exception | None = None
+    for attempt in range(5):
+        slug = _unique_slug(base, user.id, db)
+        work = Work(
+            author_id=user.id,
+            section=WorkSection.drawing,
+            slug=slug,
+            title=title,
+        )
+        db.add(work)
+        try:
+            db.flush()
+            break
+        except IntegrityError as e:
+            last_exc = e
+            db.rollback()
+            work = None
+            time.sleep(0.05 * (attempt + 1))
+    if work is None:
+        logger.error(
+            "inbox: failed to create drawing work for %s after 5 retries: %s",
+            src, last_exc,
+        )
         _move_to_errors(src)
         return
 
