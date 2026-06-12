@@ -15,6 +15,8 @@ export interface PageResponse {
   text: string | null;
   enhance_pending: boolean;
   transcribe_pending: boolean;
+  restyle_pending: boolean;
+  updated_at: string;
 }
 
 export interface WorkResponse {

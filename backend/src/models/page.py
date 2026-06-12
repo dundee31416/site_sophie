@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
+from datetime import datetime, timezone
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.session import Base
@@ -22,5 +24,14 @@ class Page(Base):
     text: Mapped[str | None] = mapped_column(Text, nullable=True)
     enhance_pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     transcribe_pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    restyle_pending: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Bumped on every change; used as a cache-buster (?v=) for image URLs.
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
     work: Mapped["Work"] = relationship("Work", back_populates="pages")  # noqa: F821

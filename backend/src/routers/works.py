@@ -7,8 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from src.ai.enhance import enhance_image
-from src.ai.restyle import restyle_image
+from src.ai.client import get_client
 from src.auth.deps import CurrentUser
 from src.config.settings import settings
 from src.database.session import get_db
@@ -24,8 +23,6 @@ from src.services import auto_ai
 from src.storage import (
     author_dir,
     cover_path,
-    enhanced_cover_path,
-    restyled_cover_path,
     url_to_disk,
     work_dir,
 )
@@ -169,19 +166,27 @@ def _original_cover_disk(work: Work) -> Path:
     return url_to_disk(work.cover_path, settings.STORAGE_ROOT)
 
 
+# Manual cover AI runs as a background task (same pattern as auto-AI on
+# upload): set the pending flag, return immediately, let the UI poll.
+
+
 @router.post("/{work_id}/cover/enhance", response_model=WorkResponse)
 def enhance_cover(
     work_id: int,
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
+    payload: RestyleRequest | None = None,
 ) -> Work:
     work = _get_owned_work(work_id, user.id, db)
-    src = _original_cover_disk(work)
-    dst = enhanced_cover_path(user.username, work.slug)
-    enhance_image(src, dst)
-    work.enhanced_cover_path = storage_url(dst, settings.STORAGE_ROOT)
+    _original_cover_disk(work)
+    get_client()
+    work.cover_enhance_pending = True
     db.commit()
     db.refresh(work)
+    background_tasks.add_task(
+        auto_ai.run_cover_enhance, work.id, payload.extra_instructions if payload else None
+    )
     return work
 
 
@@ -190,13 +195,16 @@ def restyle_cover(
     work_id: int,
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
     payload: RestyleRequest | None = None,
 ) -> Work:
     work = _get_owned_work(work_id, user.id, db)
-    src = _original_cover_disk(work)
-    dst = restyled_cover_path(user.username, work.slug)
-    restyle_image(src, dst, payload.extra_instructions if payload else None)
-    work.restyled_cover_path = storage_url(dst, settings.STORAGE_ROOT)
+    _original_cover_disk(work)
+    get_client()
+    work.cover_restyle_pending = True
     db.commit()
     db.refresh(work)
+    background_tasks.add_task(
+        auto_ai.run_cover_restyle, work.id, payload.extra_instructions if payload else None
+    )
     return work

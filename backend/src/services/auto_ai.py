@@ -43,7 +43,7 @@ def _cover_src_disk(work: Work) -> Path:
 
 # ---------- covers ----------
 
-def run_cover_enhance(work_id: int) -> None:
+def run_cover_enhance(work_id: int, extra_instructions: str | None = None) -> None:
     with SessionLocal() as db:
         work = db.get(Work, work_id)
         if work is None or work.cover_path is None:
@@ -51,7 +51,7 @@ def run_cover_enhance(work_id: int) -> None:
             return
         try:
             dst = enhanced_cover_path(work.author.username, work.slug)
-            enhance_image(_cover_src_disk(work), dst)
+            enhance_image(_cover_src_disk(work), dst, extra_instructions)
             work.enhanced_cover_path = storage_url(dst, settings.STORAGE_ROOT)
         except Exception:
             logger.exception("run_cover_enhance failed for work=%s", work_id)
@@ -79,7 +79,7 @@ def run_cover_restyle(work_id: int, extra_instructions: str | None = None) -> No
 
 # ---------- pages ----------
 
-def run_page_enhance(page_id: int) -> None:
+def run_page_enhance(page_id: int, extra_instructions: str | None = None) -> None:
     with SessionLocal() as db:
         page = db.get(Page, page_id)
         if page is None or page.scan_path is None:
@@ -87,7 +87,7 @@ def run_page_enhance(page_id: int) -> None:
             return
         try:
             dst = enhanced_page_path(page.work.author.username, page.work.slug, page.idx)
-            enhance_image(_scan_disk(page), dst)
+            enhance_image(_scan_disk(page), dst, extra_instructions)
             page.enhanced_path = storage_url(dst, settings.STORAGE_ROOT)
         except Exception:
             logger.exception("run_page_enhance failed for page=%s", page_id)
@@ -97,11 +97,11 @@ def run_page_enhance(page_id: int) -> None:
 
 
 def run_page_restyle(page_id: int, extra_instructions: str | None = None) -> None:
-    """Optional helper for consistency — pages do not auto-restyle, but the
-    PageEditor still calls it manually with extra_instructions."""
+    """Pages do not auto-restyle, but the PageEditor triggers this manually."""
     with SessionLocal() as db:
         page = db.get(Page, page_id)
         if page is None or page.scan_path is None:
+            logger.warning("run_page_restyle: page=%s missing or no scan", page_id)
             return
         try:
             dst = restyled_page_path(page.work.author.username, page.work.slug, page.idx)
@@ -110,6 +110,7 @@ def run_page_restyle(page_id: int, extra_instructions: str | None = None) -> Non
         except Exception:
             logger.exception("run_page_restyle failed for page=%s", page_id)
         finally:
+            page.restyle_pending = False
             db.commit()
 
 

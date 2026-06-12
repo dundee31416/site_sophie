@@ -112,7 +112,11 @@ export function WorkEdit() {
       : (work.cover_enhance_pending ? 1 : 0) +
         (work.cover_restyle_pending ? 1 : 0) +
         work.pages.reduce(
-          (n, p) => n + (p.enhance_pending ? 1 : 0) + (p.transcribe_pending ? 1 : 0),
+          (n, p) =>
+            n +
+            (p.enhance_pending ? 1 : 0) +
+            (p.transcribe_pending ? 1 : 0) +
+            (p.restyle_pending ? 1 : 0),
           0,
         ));
   useEffect(() => {
@@ -562,7 +566,7 @@ export function WorkEdit() {
         ) : (
           <div className="page-list">
             {sortedPages.map((p, i) => {
-              const pagePending = p.enhance_pending || p.transcribe_pending;
+              const pagePending = p.enhance_pending || p.transcribe_pending || p.restyle_pending;
               return (
                 <div
                   key={p.id}
@@ -581,7 +585,9 @@ export function WorkEdit() {
                           ? "Image + texte…"
                           : p.enhance_pending
                             ? "Image…"
-                            : "Texte…"}
+                            : p.transcribe_pending
+                              ? "Texte…"
+                              : "Redessin…"}
                       </span>
                     </div>
                   )}

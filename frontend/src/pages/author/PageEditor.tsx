@@ -74,9 +74,8 @@ export function PageEditor({ workId, page, drawingMode = false, onClose, onChang
     setError(null);
     try {
       const updated = await worksApi.transcribePage(workId, page.id);
-      setText(updated.text ?? "");
       onChange(updated);
-      setTextMsg("Texte transcrit. Tu peux le corriger puis l'enregistrer.");
+      setTextMsg("Transcription lancée — le texte apparaîtra ici automatiquement.");
     } catch (err) {
       setError(handleError(err));
     } finally {
@@ -97,7 +96,7 @@ export function PageEditor({ workId, page, drawingMode = false, onClose, onChang
     try {
       const updated = await worksApi.enhancePage(workId, page.id, drawingMode ? extraInstr : undefined);
       onChange(updated);
-      setTextMsg("Version améliorée générée.");
+      setTextMsg("Amélioration lancée — l'image apparaîtra automatiquement.");
     } catch (err) {
       setError(handleError(err));
     } finally {
@@ -118,7 +117,7 @@ export function PageEditor({ workId, page, drawingMode = false, onClose, onChang
     try {
       const updated = await worksApi.restylePage(workId, page.id, extraInstr);
       onChange(updated);
-      setTextMsg("Version redessinée générée.");
+      setTextMsg("Redessin lancé — l'image apparaîtra automatiquement.");
     } catch (err) {
       setError(handleError(err));
     } finally {
@@ -126,7 +125,12 @@ export function PageEditor({ workId, page, drawingMode = false, onClose, onChang
     }
   }
 
-  const busy = transcribing || enhancing || restyling || savingText;
+  // The AI jobs run server-side in the background: the *_pending flags
+  // (refreshed by WorkEdit's polling) keep the buttons disabled until done.
+  const transcribeBusy = transcribing || page.transcribe_pending;
+  const enhanceBusy = enhancing || page.enhance_pending;
+  const restyleBusy = restyling || page.restyle_pending;
+  const busy = transcribeBusy || enhanceBusy || restyleBusy || savingText;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -168,11 +172,11 @@ export function PageEditor({ workId, page, drawingMode = false, onClose, onChang
             <div className="stack" style={{ marginTop: "0.5rem" }}>
               {!drawingMode && (
                 <button onClick={() => void onTranscribe()} disabled={busy}>
-                  {transcribing ? "Transcription…" : "✎ Transcrire le texte"}
+                  {transcribeBusy ? "Transcription…" : "✎ Transcrire le texte"}
                 </button>
               )}
               <button onClick={() => void onEnhance()} disabled={busy}>
-                {enhancing
+                {enhanceBusy
                   ? "Amélioration…"
                   : page.enhanced_path
                     ? "↻ Re-générer l'améliorée"
@@ -180,7 +184,7 @@ export function PageEditor({ workId, page, drawingMode = false, onClose, onChang
               </button>
               {!drawingMode && (
                 <button onClick={() => void onRestyle()} disabled={busy}>
-                  {restyling
+                  {restyleBusy
                     ? "Redessin…"
                     : page.restyled_path
                       ? "↻ Re-générer la redessinée"

@@ -5,9 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Up
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from src.ai.enhance import enhance_image
-from src.ai.restyle import restyle_image
-from src.ai.transcribe import transcribe_image
+from src.ai.client import get_client
 from src.auth.deps import CurrentUser
 from src.config.settings import settings
 from src.database.session import get_db
@@ -323,19 +321,28 @@ def split_work_at_page(
     return new_work
 
 
+# The AI endpoints queue the Gemini call as a background task and return
+# immediately with the relevant *_pending flag set; the UI polls the work
+# until the flag clears. Validation (scan present, Gemini key configured)
+# still happens inline so the author gets an immediate 400/503.
+
+
 @router.post("/{page_id}/transcribe", response_model=PageResponse)
 def transcribe_page(
     work_id: int,
     page_id: int,
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
 ) -> Page:
     work = _get_owned_work(work_id, user.id, db)
     page = _get_owned_page(work, page_id)
-    text = transcribe_image(_scan_disk_path(page))
-    page.text = text if text != "" else None
+    _scan_disk_path(page)
+    get_client()
+    page.transcribe_pending = True
     db.commit()
     db.refresh(page)
+    background_tasks.add_task(auto_ai.run_page_transcribe, page.id)
     return page
 
 
@@ -345,16 +352,19 @@ def enhance_page(
     page_id: int,
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
     payload: RestyleRequest | None = None,
 ) -> Page:
     work = _get_owned_work(work_id, user.id, db)
     page = _get_owned_page(work, page_id)
-    src = _scan_disk_path(page)
-    dst = enhanced_page_path(user.username, work.slug, page.idx)
-    enhance_image(src, dst, payload.extra_instructions if payload else None)
-    page.enhanced_path = storage_url(dst, settings.STORAGE_ROOT)
+    _scan_disk_path(page)
+    get_client()
+    page.enhance_pending = True
     db.commit()
     db.refresh(page)
+    background_tasks.add_task(
+        auto_ai.run_page_enhance, page.id, payload.extra_instructions if payload else None
+    )
     return page
 
 
@@ -364,14 +374,17 @@ def restyle_page(
     page_id: int,
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    background_tasks: BackgroundTasks,
     payload: RestyleRequest | None = None,
 ) -> Page:
     work = _get_owned_work(work_id, user.id, db)
     page = _get_owned_page(work, page_id)
-    src = _scan_disk_path(page)
-    dst = restyled_page_path(user.username, work.slug, page.idx)
-    restyle_image(src, dst, payload.extra_instructions if payload else None)
-    page.restyled_path = storage_url(dst, settings.STORAGE_ROOT)
+    _scan_disk_path(page)
+    get_client()
+    page.restyle_pending = True
     db.commit()
     db.refresh(page)
+    background_tasks.add_task(
+        auto_ai.run_page_restyle, page.id, payload.extra_instructions if payload else None
+    )
     return page

@@ -38,6 +38,8 @@ class PageResponse(BaseModel):
     text: str | None
     enhance_pending: bool
     transcribe_pending: bool
+    restyle_pending: bool
+    updated_at: datetime
 
 
 class WorkResponse(BaseModel):

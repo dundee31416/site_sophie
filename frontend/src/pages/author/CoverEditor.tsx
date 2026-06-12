@@ -61,7 +61,7 @@ export function CoverEditor({ work, onClose, onChange }: Props) {
     try {
       const updated = await worksApi.enhanceCover(work.id);
       onChange(updated);
-      setMsg("Version améliorée générée.");
+      setMsg("Amélioration lancée — l'image apparaîtra automatiquement.");
     } catch (err) {
       setError(handleError(err));
     } finally {
@@ -81,7 +81,7 @@ export function CoverEditor({ work, onClose, onChange }: Props) {
     try {
       const updated = await worksApi.restyleCover(work.id, restyleExtra);
       onChange(updated);
-      setMsg("Version redessinée générée.");
+      setMsg("Redessin lancé — l'image apparaîtra automatiquement.");
     } catch (err) {
       setError(handleError(err));
     } finally {
@@ -95,7 +95,11 @@ export function CoverEditor({ work, onClose, onChange }: Props) {
     { key: "restyled", label: "🎨 Redessinée", src: work.restyled_cover_path },
   ];
   const present = variants.filter((v) => v.src != null);
-  const busy = busyKind != null;
+  // Server-side pending flags (refreshed by WorkEdit's polling) keep the
+  // buttons disabled while a background Gemini job runs.
+  const enhanceBusy = busyKind === "enhance" || work.cover_enhance_pending;
+  const restyleBusy = busyKind === "restyle" || work.cover_restyle_pending;
+  const busy = busyKind != null || enhanceBusy || restyleBusy;
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -145,14 +149,14 @@ export function CoverEditor({ work, onClose, onChange }: Props) {
             />
           </label>
           <button onClick={() => void onEnhance()} disabled={busy || work.cover_path == null}>
-            {busyKind === "enhance"
+            {enhanceBusy
               ? "Amélioration…"
               : work.enhanced_cover_path
                 ? "↻ Re-générer l'améliorée"
                 : "✨ Améliorer"}
           </button>
           <button onClick={() => void onRestyle()} disabled={busy || work.cover_path == null}>
-            {busyKind === "restyle"
+            {restyleBusy
               ? "Redessin…"
               : work.restyled_cover_path
                 ? "↻ Re-générer la redessinée"

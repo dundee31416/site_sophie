@@ -37,9 +37,11 @@ def _clear_stuck_pending_flags() -> None:
         n2 = db.execute(
             update(Page)
             .where(
-                (Page.enhance_pending.is_(True)) | (Page.transcribe_pending.is_(True)),
+                (Page.enhance_pending.is_(True))
+                | (Page.transcribe_pending.is_(True))
+                | (Page.restyle_pending.is_(True)),
             )
-            .values(enhance_pending=False, transcribe_pending=False)
+            .values(enhance_pending=False, transcribe_pending=False, restyle_pending=False)
         ).rowcount
         db.commit()
         if n1 or n2:
