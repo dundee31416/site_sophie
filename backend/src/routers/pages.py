@@ -238,7 +238,6 @@ def move_page_to_work(
     # Bump idx out of the way (two-phase) to avoid (work_id, idx) collisions
     # while we rewire.
     new_idx = (max((p.idx for p in dst_work.pages), default=0)) + 1
-    old_idx = page.idx
     page.idx = 10_000 + new_idx
     db.flush()
     _move_page_files_for_idx(

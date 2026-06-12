@@ -5,8 +5,9 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.database.session import get_db
-from src.models import SINGLE_IMAGE_SECTIONS, DigitalVariant, Page, User, UserRole, Work, WorkSection
+from src.models import SINGLE_IMAGE_SECTIONS, DigitalVariant, User, UserRole, Work, WorkSection
 from src.schemas.public import PublicAuthor, PublicWorkDetail, PublicWorkSummary
+from src.util import with_version
 
 router = APIRouter(prefix="/api/public", tags=["public"])
 

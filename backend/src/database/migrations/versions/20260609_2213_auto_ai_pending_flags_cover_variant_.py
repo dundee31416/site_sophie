@@ -54,4 +54,4 @@ def downgrade() -> None:
     op.drop_column('pages', 'enhance_pending')
     op.drop_index(op.f('ix_pending_files_author_id'), table_name='pending_files')
     op.drop_table('pending_files')
-    pending_section_enum.drop(op.get_bind(), checkfirst=True)
+    sa.Enum('book', 'comic', name='pending_section').drop(op.get_bind(), checkfirst=True)

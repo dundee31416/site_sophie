@@ -44,7 +44,6 @@ from src.storage import (
     inbox_errors_dir,
     page_path,
     pending_dir,
-    work_dir,
 )
 from src.util import IMAGE_EXTS, slugify, storage_url
 
