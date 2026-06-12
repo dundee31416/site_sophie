@@ -2,17 +2,10 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first for better caching
-COPY requirements.txt requirements-dev.txt ./
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements-dev.txt
+# Copy requirements first for better caching. Every runtime dependency ships
+# a prebuilt wheel, so no gcc/build toolchain is needed in the image.
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
