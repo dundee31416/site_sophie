@@ -46,3 +46,6 @@ digital/
 # Tool workspace output (Gemini enhance/extract scripts), not in git.
 drawings/
 enhanced/
+
+# Local Gemini tool scripts/prompts (used by Claude agents, not the app)
+tools/
