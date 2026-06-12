@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { thumbUrl } from "../../api/images";
 import * as worksApi from "../../api/works";
 import type { WorkResponse } from "../../api/works";
 import { SECTION_LABELS } from "../../api/works";
@@ -58,7 +59,7 @@ export function Dashboard() {
               <div
                 className="cover"
                 style={{
-                  backgroundImage: w.cover_path ? `url(${w.cover_path})` : undefined,
+                  backgroundImage: w.cover_path ? `url(${thumbUrl(w.cover_path)})` : undefined,
                   backgroundColor: w.cover_path ? undefined : w.color ?? "var(--accent-soft)",
                 }}
               >

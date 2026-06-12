@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { thumbUrl } from "../../api/images";
 import * as publicApi from "../../api/public";
 import type { PublicAuthor, PublicWorkSummary } from "../../api/public";
 import type { WorkSection } from "../../api/works";
@@ -46,7 +47,7 @@ function BookCard({ work }: { work: PublicWorkSummary }) {
             title: work.title,
             color: work.color,
             shape: work.shape,
-            cover_path: effectiveCover,
+            cover_path: thumbUrl(effectiveCover),
           }}
           author={{
             username: work.author_username,
@@ -67,7 +68,7 @@ function BookCard({ work }: { work: PublicWorkSummary }) {
 
 function DrawingTile({ work }: { work: PublicWorkSummary }) {
   const { t } = useI18n();
-  const src = work.first_page_path ?? work.cover_path;
+  const src = thumbUrl(work.first_page_path ?? work.cover_path);
   return (
     <Link
       to={`/lecture/${work.author_username}/${work.slug}`}

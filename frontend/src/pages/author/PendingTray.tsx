@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { thumbUrl } from "../../api/images";
 import * as pendingApi from "../../api/pending";
 import type { PendingFileResponse, PendingSection } from "../../api/pending";
 
@@ -179,7 +180,7 @@ export function PendingTray() {
                         key={f.id}
                         className="page-thumb"
                         style={{
-                          backgroundImage: `url(${f.thumbnail_url})`,
+                          backgroundImage: `url(${thumbUrl(f.thumbnail_url)})`,
                           outline: isSel ? "3px solid var(--accent)" : undefined,
                         }}
                         onClick={() => toggle(f.id)}

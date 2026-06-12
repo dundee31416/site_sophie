@@ -1,3 +1,4 @@
+import { thumbUrl } from "../api/images";
 import { ImageFallback } from "./ImageFallback";
 
 interface AuthorInfo {
@@ -28,7 +29,7 @@ export function Avatar({ author, size = 56, active = false }: Props) {
       }}
     >
       <ImageFallback
-        src={author.avatar_path}
+        src={thumbUrl(author.avatar_path, 200)}
         alt={name}
         className="avatar-img"
         loading="lazy"

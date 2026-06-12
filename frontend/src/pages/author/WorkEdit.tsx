@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { thumbUrl } from "../../api/images";
 import * as worksApi from "../../api/works";
 import type {
   DigitalVariant,
@@ -33,7 +34,7 @@ function CoverThumb({
         className="cover thumb-with-spinner"
         style={{
           width: 120,
-          backgroundImage: src ? `url(${src})` : undefined,
+          backgroundImage: src ? `url(${thumbUrl(src, 200)})` : undefined,
           cursor: "pointer",
         }}
         onClick={onClick}
@@ -571,7 +572,7 @@ export function WorkEdit() {
                 <div
                   key={p.id}
                   className="page-thumb thumb-with-spinner"
-                  style={{ backgroundImage: p.scan_path ? `url(${p.scan_path})` : undefined }}
+                  style={{ backgroundImage: p.scan_path ? `url(${thumbUrl(p.scan_path)})` : undefined }}
                   onClick={() => setEditingPageId(p.id)}
                   role="button"
                   tabIndex={0}

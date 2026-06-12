@@ -15,6 +15,7 @@ from src.routers import me as me_router
 from src.routers import pages as pages_router
 from src.routers import pending as pending_router
 from src.routers import public as public_router
+from src.routers import thumbs as thumbs_router
 from src.routers import works as works_router
 from src.storage import ensure_dir
 from src.watcher.inbox import start_watcher, stop_watcher
@@ -79,6 +80,7 @@ app.include_router(works_router.router)
 app.include_router(pages_router.router)
 app.include_router(pending_router.router)
 app.include_router(public_router.router)
+app.include_router(thumbs_router.router)
 
 
 @app.get("/api/health")
