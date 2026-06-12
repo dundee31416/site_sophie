@@ -1,10 +1,23 @@
 import re
 import unicodedata
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile, status
 
 IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "gif"}
+
+
+def with_version(url: str | None, dt: datetime | None) -> str | None:
+    """Append a cache-busting ?v= to a /uploads/ URL.
+
+    Storage paths are stable while their content changes (re-enhancing a
+    page overwrites the same file), so bare URLs are not safe to cache.
+    With the version appended, the CDN/browser can cache them forever.
+    """
+    if url is None or dt is None or "?" in url:
+        return url
+    return f"{url}?v={int(dt.timestamp())}"
 
 
 def slugify(text: str) -> str:

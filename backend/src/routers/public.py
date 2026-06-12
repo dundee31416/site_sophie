@@ -45,8 +45,8 @@ def _first_page_path(work: Work) -> str | None:
         and work.digital_variant == DigitalVariant.enhanced
         and first.enhanced_path is not None
     ):
-        return first.enhanced_path
-    return first.scan_path
+        return with_version(first.enhanced_path, first.updated_at)
+    return with_version(first.scan_path, first.updated_at)
 
 
 def _to_summary(work: Work) -> PublicWorkSummary:

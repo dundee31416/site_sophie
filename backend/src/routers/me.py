@@ -1,3 +1,4 @@
+import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -59,7 +60,9 @@ def upload_avatar(
         if old != dest and old.exists():
             old.unlink()
     save_upload(file, dest)
-    user.avatar_path = storage_url(dest, settings.STORAGE_ROOT)
+    # The avatar lives at a fixed path (avatar.<ext>), so bake a version
+    # into the stored URL — /uploads/* is cached as immutable downstream.
+    user.avatar_path = f"{storage_url(dest, settings.STORAGE_ROOT)}?v={int(time.time())}"
     db.commit()
     db.refresh(user)
     return user

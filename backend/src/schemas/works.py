@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.models import DigitalVariant, WorkSection
+from src.util import with_version
 
 
 class CreateWorkRequest(BaseModel):
@@ -41,6 +42,13 @@ class PageResponse(BaseModel):
     restyle_pending: bool
     updated_at: datetime
 
+    @model_validator(mode="after")
+    def _version_image_urls(self) -> "PageResponse":
+        self.scan_path = with_version(self.scan_path, self.updated_at)
+        self.enhanced_path = with_version(self.enhanced_path, self.updated_at)
+        self.restyled_path = with_version(self.restyled_path, self.updated_at)
+        return self
+
 
 class WorkResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -64,6 +72,13 @@ class WorkResponse(BaseModel):
     cover_restyle_pending: bool
     created_at: datetime
     updated_at: datetime
+
+    @model_validator(mode="after")
+    def _version_cover_urls(self) -> "WorkResponse":
+        self.cover_path = with_version(self.cover_path, self.updated_at)
+        self.enhanced_cover_path = with_version(self.enhanced_cover_path, self.updated_at)
+        self.restyled_cover_path = with_version(self.restyled_cover_path, self.updated_at)
+        return self
 
 
 class WorkDetailResponse(WorkResponse):
