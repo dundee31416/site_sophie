@@ -109,7 +109,7 @@ class InboxHandler(FileSystemEventHandler):
     def _wait_stable(path: Path) -> None:
         time.sleep(DEBOUNCE_SECONDS)
         last = None
-        for _ in range(60):  # cap at ~60s
+        for _ in range(60):  # cap at ~2 min
             if not path.exists():
                 raise FileNotFoundError(path)
             stat = path.stat()
@@ -118,6 +118,8 @@ class InboxHandler(FileSystemEventHandler):
                 return
             last = sig
             time.sleep(STABILITY_SECONDS)
+        # Still changing after ~2 min: don't ingest a half-written file.
+        raise TimeoutError(f"{path} never stabilized")
 
 
 def _move_to_errors(path: Path) -> None:

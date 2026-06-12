@@ -1,6 +1,9 @@
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_WEAK_SECRETS = {"", "change-me-in-prod", "dev-only-not-secret", "admin", "secret", "password"}
 
 
 class Settings(BaseSettings):
@@ -18,9 +21,6 @@ class Settings(BaseSettings):
 
     STORAGE_ROOT: Path = Path("/data/storage")
     INBOX_ROOT: Path = Path("/data/inbox")
-    # Pending flags older than this many minutes get cleared on startup —
-    # they're orphans from a backend restart mid-Gemini-call.
-    PROCESSING_STUCK_MINUTES: int = 10
 
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "change-me-in-prod"
@@ -35,6 +35,20 @@ class Settings(BaseSettings):
     # Optional. When set, /api/me/works/.../pages/.../{transcribe,enhance,restyle}
     # endpoints become available. Empty = endpoints return 503.
     GEMINI_API_KEY: str = ""
+
+    @model_validator(mode="after")
+    def _refuse_weak_prod_secrets(self) -> "Settings":
+        # Compose interpolation turns a missing .env entry into an empty
+        # string, which would otherwise silently sign sessions with "".
+        if self.JWT_SECRET == "":
+            raise ValueError("JWT_SECRET is empty — is it missing from .env?")
+        # COOKIE_SECURE=true is our "running in prod" marker.
+        if self.COOKIE_SECURE:
+            if self.JWT_SECRET in _WEAK_SECRETS or len(self.JWT_SECRET) < 16:
+                raise ValueError("JWT_SECRET is a weak/default value; refusing to start in prod")
+            if self.ADMIN_PASSWORD in _WEAK_SECRETS:
+                raise ValueError("ADMIN_PASSWORD is a weak/default value; refusing to start in prod")
+        return self
 
 
 settings = Settings()

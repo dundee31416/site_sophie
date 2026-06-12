@@ -22,7 +22,11 @@ def get_current_user(
     payload = decode_token(session_token)
     if payload is None or "sub" not in payload:
         raise _unauthorized()
-    user = db.get(User, int(payload["sub"]))
+    try:
+        user_id = int(payload["sub"])
+    except (TypeError, ValueError):
+        raise _unauthorized()
+    user = db.get(User, user_id)
     if user is None:
         raise _unauthorized()
     return user

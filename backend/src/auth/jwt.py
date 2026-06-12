@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+import jwt
 
 from src.config.settings import settings
 from src.models import UserRole
@@ -15,5 +15,5 @@ def encode_token(user_id: int, role: UserRole) -> str:
 def decode_token(token: str) -> dict | None:
     try:
         return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-    except JWTError:
+    except jwt.InvalidTokenError:
         return None

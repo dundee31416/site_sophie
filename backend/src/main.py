@@ -1,6 +1,5 @@
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,15 +23,14 @@ logger = logging.getLogger(__name__)
 
 
 def _clear_stuck_pending_flags() -> None:
-    """Anything still marked pending after PROCESSING_STUCK_MINUTES was
-    orphaned by a backend restart. Clear it so the UI doesn't spin forever."""
-    cutoff = datetime.now(timezone.utc) - timedelta(minutes=settings.PROCESSING_STUCK_MINUTES)
+    """AI jobs run as in-process background tasks, so they die with the
+    server — any *_pending flag still set at startup is an orphan. Clear
+    them all so the UI doesn't spin forever."""
     with SessionLocal() as db:
         n1 = db.execute(
             update(Work)
             .where(
                 (Work.cover_enhance_pending.is_(True)) | (Work.cover_restyle_pending.is_(True)),
-                Work.updated_at < cutoff,
             )
             .values(cover_enhance_pending=False, cover_restyle_pending=False)
         ).rowcount
