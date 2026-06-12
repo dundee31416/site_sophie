@@ -17,7 +17,11 @@ _PROMPT = """Clean and digitize this hand-drawn children's storybook page. Goals
 - Keep the entire drawing — do not crop into the drawing itself, only the area outside the paper."""
 
 
-def enhance_image(src_path: Path, dst_path: Path) -> None:
+def enhance_image(
+    src_path: Path,
+    dst_path: Path,
+    extra_instructions: str | None = None,
+) -> None:
     """Send the source image to Gemini, save the returned PNG to dst_path."""
     if not src_path.exists():
         raise HTTPException(
@@ -29,11 +33,19 @@ def enhance_image(src_path: Path, dst_path: Path) -> None:
     mime = "image/png" if src_path.suffix.lower() == ".png" else "image/jpeg"
     image_bytes = src_path.read_bytes()
 
+    prompt = _PROMPT
+    if extra_instructions is not None and extra_instructions.strip() != "":
+        prompt = (
+            _PROMPT
+            + "\n\nADDITIONAL INSTRUCTIONS FROM THE AUTHOR (apply these on top of the rules above):\n"
+            + extra_instructions.strip()
+        )
+
     response = client.models.generate_content(
         model=image_model(),
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime),
-            _PROMPT,
+            prompt,
         ],
         config=types.GenerateContentConfig(response_modalities=["IMAGE", "TEXT"]),
     )

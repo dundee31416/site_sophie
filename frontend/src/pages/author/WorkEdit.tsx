@@ -173,13 +173,27 @@ export function WorkEdit() {
     }
   }
 
+  async function onSaveDigitalVariant(next: DigitalVariant | "") {
+    if (work == null) return;
+    setDigitalVariant(next);
+    try {
+      await worksApi.updateWork(work.id, { digital_variant: next === "" ? null : next });
+      await reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur");
+    }
+  }
+
   async function onPagesChange(e: ChangeEvent<HTMLInputElement>) {
     const list = e.target.files;
     e.target.value = "";
     if (list == null || work == null) return;
     const arr = Array.from(list);
-    if (work.section === "drawing" && (arr.length !== 1 || work.pages.length >= 1)) {
-      setError("Un dessin contient une seule image.");
+    if (
+      (work.section === "drawing" || work.section === "craft") &&
+      (arr.length !== 1 || work.pages.length >= 1)
+    ) {
+      setError("Ce type de création contient une seule image.");
       return;
     }
     setUploading(true);
@@ -293,7 +307,8 @@ export function WorkEdit() {
   }
 
   const sortedPages = [...work.pages].sort((a, b) => a.idx - b.idx);
-  const drawingMode = work.section === "drawing";
+  // Single-image mode: drawings and crafts hold exactly one image.
+  const drawingMode = work.section === "drawing" || work.section === "craft";
   const editingPage = editingPageId == null ? null : work.pages.find((p) => p.id === editingPageId) ?? null;
 
   return (
@@ -506,6 +521,42 @@ export function WorkEdit() {
           )}
         </div>
 
+        {drawingMode && sortedPages.length > 0 && (
+          <div>
+            <div style={{ color: "var(--muted)", fontSize: "0.9rem", marginBottom: "0.25rem" }}>
+              Version à montrer sur le site
+            </div>
+            <div className="variant-toggle">
+              <label>
+                <input
+                  type="radio"
+                  name="drawing_variant"
+                  checked={digitalVariant === ""}
+                  onChange={() => void onSaveDigitalVariant("")}
+                />
+                Original (scan)
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="drawing_variant"
+                  checked={digitalVariant === "enhanced"}
+                  disabled={sortedPages[0].enhanced_path == null}
+                  onChange={() => void onSaveDigitalVariant("enhanced")}
+                />
+                ✨ Améliorée
+              </label>
+            </div>
+            {sortedPages[0].enhanced_path == null && (
+              <div style={{ color: "var(--muted)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                {sortedPages[0].enhance_pending
+                  ? "Version améliorée en cours de génération…"
+                  : "Pas encore de version améliorée — utilise « Améliorer l'image » dans l'éditeur."}
+              </div>
+            )}
+          </div>
+        )}
+
         {sortedPages.length === 0 ? (
           <p style={{ color: "var(--muted)", margin: 0 }}>Aucune page pour le moment.</p>
         ) : (
@@ -577,6 +628,7 @@ export function WorkEdit() {
         <PageEditor
           workId={work.id}
           page={editingPage}
+          drawingMode={drawingMode}
           onClose={() => setEditingPageId(null)}
           onChange={onPageUpdated}
         />

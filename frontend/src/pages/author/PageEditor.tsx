@@ -6,11 +6,12 @@ import type { PageResponse } from "../../api/works";
 interface Props {
   workId: number;
   page: PageResponse;
+  drawingMode?: boolean;
   onClose: () => void;
   onChange: (updated: PageResponse) => void;
 }
 
-export function PageEditor({ workId, page, onClose, onChange }: Props) {
+export function PageEditor({ workId, page, drawingMode = false, onClose, onChange }: Props) {
   const [text, setText] = useState(page.text ?? "");
   const [savingText, setSavingText] = useState(false);
   const [textMsg, setTextMsg] = useState<string | null>(null);
@@ -18,8 +19,8 @@ export function PageEditor({ workId, page, onClose, onChange }: Props) {
   const [transcribing, setTranscribing] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [restyling, setRestyling] = useState(false);
-  const [restyleExtra, setRestyleExtra] = useState("");
-  const [showRestyleExtra, setShowRestyleExtra] = useState(false);
+  const [extraInstr, setExtraInstr] = useState("");
+  const [showExtra, setShowExtra] = useState(false);
 
   useEffect(() => {
     setText(page.text ?? "");
@@ -94,7 +95,7 @@ export function PageEditor({ workId, page, onClose, onChange }: Props) {
     setEnhancing(true);
     setError(null);
     try {
-      const updated = await worksApi.enhancePage(workId, page.id);
+      const updated = await worksApi.enhancePage(workId, page.id, drawingMode ? extraInstr : undefined);
       onChange(updated);
       setTextMsg("Version améliorée générée.");
     } catch (err) {
@@ -115,7 +116,7 @@ export function PageEditor({ workId, page, onClose, onChange }: Props) {
     setRestyling(true);
     setError(null);
     try {
-      const updated = await worksApi.restylePage(workId, page.id, restyleExtra);
+      const updated = await worksApi.restylePage(workId, page.id, extraInstr);
       onChange(updated);
       setTextMsg("Version redessinée générée.");
     } catch (err) {
@@ -165,9 +166,11 @@ export function PageEditor({ workId, page, onClose, onChange }: Props) {
             )}
 
             <div className="stack" style={{ marginTop: "0.5rem" }}>
-              <button onClick={() => void onTranscribe()} disabled={busy}>
-                {transcribing ? "Transcription…" : "✎ Transcrire le texte"}
-              </button>
+              {!drawingMode && (
+                <button onClick={() => void onTranscribe()} disabled={busy}>
+                  {transcribing ? "Transcription…" : "✎ Transcrire le texte"}
+                </button>
+              )}
               <button onClick={() => void onEnhance()} disabled={busy}>
                 {enhancing
                   ? "Amélioration…"
@@ -175,49 +178,57 @@ export function PageEditor({ workId, page, onClose, onChange }: Props) {
                     ? "↻ Re-générer l'améliorée"
                     : "✨ Améliorer l'image"}
               </button>
-              <button onClick={() => void onRestyle()} disabled={busy}>
-                {restyling
-                  ? "Redessin…"
-                  : page.restyled_path
-                    ? "↻ Re-générer la redessinée"
-                    : "🎨 Redessiner en style album"}
-              </button>
+              {!drawingMode && (
+                <button onClick={() => void onRestyle()} disabled={busy}>
+                  {restyling
+                    ? "Redessin…"
+                    : page.restyled_path
+                      ? "↻ Re-générer la redessinée"
+                      : "🎨 Redessiner en style album"}
+                </button>
+              )}
               <button
                 type="button"
                 className="ghost"
-                onClick={() => setShowRestyleExtra((v) => !v)}
+                onClick={() => setShowExtra((v) => !v)}
                 style={{ fontSize: "0.85rem" }}
               >
-                {showRestyleExtra
-                  ? "Masquer les instructions de redessin"
-                  : "+ Instructions de redessin (optionnel)"}
+                {showExtra
+                  ? "Masquer les instructions"
+                  : "+ Instructions personnalisées (optionnel)"}
               </button>
-              {showRestyleExtra && (
+              {showExtra && (
                 <textarea
                   rows={4}
-                  value={restyleExtra}
-                  onChange={(e) => setRestyleExtra(e.target.value)}
-                  placeholder="Ex. : « garder les cheveux blonds et bouclés, mettre un fond de prairie verte, garder la robe à pois rouges ». Sera ajouté au prompt de Gemini."
+                  value={extraInstr}
+                  onChange={(e) => setExtraInstr(e.target.value)}
+                  placeholder={
+                    drawingMode
+                      ? "Ex. : « garder le fond blanc, ne pas toucher au ciel, accentuer le rouge de la robe ». Sera ajouté au prompt d'amélioration de Gemini."
+                      : "Ex. : « garder les cheveux blonds et bouclés, mettre un fond de prairie verte, garder la robe à pois rouges ». Sera ajouté au prompt de Gemini."
+                  }
                   maxLength={4000}
                 />
               )}
             </div>
           </div>
 
-          <div className="modal-text-col">
-            <label style={{ flex: 1 }}>
-              Texte de la page
-              <textarea
-                rows={16}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Ce que dit la page, mot pour mot. Tu peux corriger les fautes après transcription automatique."
-              />
-            </label>
-            <button onClick={() => void onSaveText()} disabled={busy} style={{ marginTop: "0.5rem" }}>
-              {savingText ? "Enregistrement…" : "Enregistrer le texte"}
-            </button>
-          </div>
+          {!drawingMode && (
+            <div className="modal-text-col">
+              <label style={{ flex: 1 }}>
+                Texte de la page
+                <textarea
+                  rows={16}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Ce que dit la page, mot pour mot. Tu peux corriger les fautes après transcription automatique."
+                />
+              </label>
+              <button onClick={() => void onSaveText()} disabled={busy} style={{ marginTop: "0.5rem" }}>
+                {savingText ? "Enregistrement…" : "Enregistrer le texte"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

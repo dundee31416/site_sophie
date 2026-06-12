@@ -11,7 +11,7 @@ from src.ai.transcribe import transcribe_image
 from src.auth.deps import CurrentUser
 from src.config.settings import settings
 from src.database.session import get_db
-from src.models import Page, Work, WorkSection
+from src.models import SINGLE_IMAGE_SECTIONS, DigitalVariant, Page, Work, WorkSection
 from src.schemas.pending import SplitWorkRequest
 from src.schemas.works import (
     PageResponse,
@@ -71,18 +71,25 @@ def upload_pages(
     if len(files) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files provided")
 
-    if work.section == WorkSection.drawing:
+    single_image = work.section in SINGLE_IMAGE_SECTIONS
+    if single_image:
         if len(files) > 1:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A drawing can contain only one image",
+                detail="This kind of work can contain only one image",
             )
         for existing in work.pages:
             db.delete(existing)
         db.flush()
 
-    next_idx = (max((p.idx for p in work.pages if p.idx is not None), default=0)) + 1 if work.section != WorkSection.drawing else 1
-    auto_ai_pages = work.section == WorkSection.book
+    next_idx = (max((p.idx for p in work.pages if p.idx is not None), default=0)) + 1 if not single_image else 1
+    # Books auto-enhance + auto-transcribe; drawings/crafts auto-enhance only (no text).
+    do_enhance = work.section in (WorkSection.book, WorkSection.drawing, WorkSection.craft)
+    do_transcribe = work.section == WorkSection.book
+    if single_image:
+        # Show the improved version by default once it's ready; the author can
+        # flip back to the original scan from the editor.
+        work.digital_variant = DigitalVariant.enhanced
     created: list[Page] = []
     for upload in files:
         ext = file_ext(upload.filename, IMAGE_EXTS)
@@ -93,8 +100,9 @@ def upload_pages(
             idx=next_idx,
             scan_path=storage_url(dest, settings.STORAGE_ROOT),
         )
-        if auto_ai_pages:
+        if do_enhance:
             page.enhance_pending = True
+        if do_transcribe:
             page.transcribe_pending = True
         db.add(page)
         created.append(page)
@@ -104,9 +112,10 @@ def upload_pages(
     for page in created:
         db.refresh(page)
 
-    if auto_ai_pages:
-        for page in created:
+    for page in created:
+        if do_enhance:
             background_tasks.add_task(auto_ai.run_page_enhance, page.id)
+        if do_transcribe:
             background_tasks.add_task(auto_ai.run_page_transcribe, page.id)
 
     return created
@@ -267,10 +276,10 @@ def split_work_at_page(
     """Create a new Work containing this page and all subsequent pages."""
     src_work = _get_owned_work(work_id, user.id, db)
     page = _get_owned_page(src_work, page_id)
-    if src_work.section == WorkSection.drawing:
+    if src_work.section in SINGLE_IMAGE_SECTIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Drawings can't be split",
+            detail="Single-image works can't be split",
         )
 
     title = ((payload.title if payload else None) or "").strip()
@@ -336,12 +345,13 @@ def enhance_page(
     page_id: int,
     user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    payload: RestyleRequest | None = None,
 ) -> Page:
     work = _get_owned_work(work_id, user.id, db)
     page = _get_owned_page(work, page_id)
     src = _scan_disk_path(page)
     dst = enhanced_page_path(user.username, work.slug, page.idx)
-    enhance_image(src, dst)
+    enhance_image(src, dst, payload.extra_instructions if payload else None)
     page.enhanced_path = storage_url(dst, settings.STORAGE_ROOT)
     db.commit()
     db.refresh(page)

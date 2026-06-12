@@ -32,20 +32,36 @@
 
 /* dotted paper backdrop */
 .app-bg {
-  min-height: calc(100vh - 60px);
   background-color: var(--paper);
   background-image: radial-gradient(var(--pub-line) 1.4px, transparent 1.4px);
   background-size: 26px 26px;
 }
 
-/* ---------------- HERO + LOGO + SEARCH ---------------- */
+/* ---------------- FIXED SHELL ----------------
+   The homepage fills the viewport and never scrolls as a whole: the header,
+   the top nav, the section panel and the author selection all stay put, and
+   only the artwork grid (.shelf-scroll) scrolls. */
+.lisons-public.home-shell {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* The top nav sits directly under our header, both static. */
+.lisons-public.home-shell .top {
+  flex: none;
+}
+
+/* ---------------- HEADER + LOGO + SEARCH ---------------- */
 .lisons-public .site-header {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 20px;
   padding: 18px 30px;
   background: var(--paper);
   border-bottom: 3px solid var(--pub-ink);
+  z-index: 30;
 }
 
 .lisons-public .logo {
@@ -79,65 +95,151 @@
 .lisons-public .search {
   margin-left: auto;
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
   background: #fff;
   border: 3px solid var(--pub-ink);
   border-radius: 40px;
-  padding: 8px 18px;
-  min-width: 240px;
+  padding: 9px 18px;
+  width: min(340px, 40vw);
   box-shadow: 3px 3px 0 var(--pub-ink);
 }
 .lisons-public .search input {
+  flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   font-family: var(--ui);
   font-size: 16px;
   font-weight: 600;
-  width: 100%;
   background: transparent;
+  line-height: 1.2;
 }
 .lisons-public .search input::placeholder { color: #b7ad9f; }
-.lisons-public .search svg { color: var(--pub-ink-soft); flex: none; }
+.lisons-public .search svg { color: var(--pub-ink-soft); flex: none; display: block; }
 
-.lisons-public .hero { padding: 34px 30px 8px; }
-.lisons-public .hero h1 {
+/* FR / EN language switch */
+.lisons-public .lang-toggle {
+  flex: none;
+  display: flex;
+  border: 3px solid var(--pub-ink);
+  border-radius: 30px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 3px 3px 0 var(--pub-ink);
+}
+.lisons-public .lang-toggle button {
   font-family: var(--display);
   font-weight: 800;
-  font-size: 40px;
-  margin: 0 0 4px;
+  font-size: 14px;
+  letter-spacing: .5px;
+  padding: 8px 13px;
+  border: none;
+  background: transparent;
+  color: var(--pub-ink-soft);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.lisons-public .lang-toggle button + button { border-left: 3px solid var(--pub-line); }
+.lisons-public .lang-toggle button:hover { color: var(--pub-ink); }
+.lisons-public .lang-toggle button.on { background: var(--pub-ink); color: #fff; }
+
+/* ---------------- HOME LAYOUT (sidebar + main) ---------------- */
+.lisons-public .home-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.lisons-public .section-panel {
+  flex: none;
+  width: 230px;
+  padding: 28px 18px 28px 30px;
+  border-right: 3px solid var(--pub-line);
+  overflow-y: auto;
+}
+.lisons-public .panel-label {
+  font-family: var(--hand);
+  font-size: 19px;
+  color: var(--pub-ink-soft);
+  margin: 0 0 14px 6px;
+}
+.lisons-public .section-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lisons-public .section-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 16px;
+  padding: 11px 16px;
+  background: #fff;
+  border: 3px solid var(--pub-ink);
+  border-radius: 16px;
+  color: var(--pub-ink);
+  box-shadow: 2px 2px 0 var(--pub-ink);
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s;
+}
+.lisons-public .section-link:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--pub-ink); }
+.lisons-public .section-link.active {
+  background: var(--pub-ink);
+  color: #fff;
+}
+.lisons-public .section-link-icon { display: flex; flex: none; }
+
+/* override the global `main {}` rule from styles.css (max-width/margin) */
+.lisons-public .home-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Static block above the scroll area: author picker, section title, count. */
+.lisons-public .main-head {
+  flex: none;
+  border-bottom: 3px solid var(--pub-line);
+}
+
+.lisons-public .author-bar {
+  padding: 22px 30px 14px;
+}
+
+.lisons-public .section-heading { padding: 4px 30px 0; }
+.lisons-public .section-heading h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 30px;
+  margin: 0 0 2px;
   line-height: 1.05;
 }
-.lisons-public .hero p {
-  margin: 0 0 22px;
+.lisons-public .section-heading p {
+  margin: 0;
   color: var(--pub-ink-soft);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
 }
 
-/* ---------------- SECTION TABS ---------------- */
-.lisons-public .section-tabs {
-  display: flex;
-  gap: 10px;
-  padding: 0 30px;
-  margin-bottom: 18px;
-}
-.lisons-public .section-tab {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: 17px;
-  padding: 10px 22px;
-  background: #fff;
-  border: 3px solid var(--pub-ink);
-  border-radius: 30px;
-  color: var(--pub-ink);
-  box-shadow: 2px 2px 0 var(--pub-ink);
-  transition: transform .12s;
-}
-.lisons-public .section-tab:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--pub-ink); }
-.lisons-public .section-tab.active {
-  background: var(--pub-ink);
-  color: #fff;
+/* The only scrolling region — artwork grid and nothing else. */
+.lisons-public .shelf-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 30px 40px;
 }
 
 .lisons-public .filter-label {
@@ -160,7 +262,7 @@
   gap: 8px;
   background: none;
   transition: transform .15s;
-  width: 84px;
+  width: 100px;
   border: none;
   cursor: pointer;
   font-family: inherit;
@@ -208,8 +310,8 @@
   background: #fff;
   border: 3px solid var(--pub-ink);
   border-radius: 20px;
-  padding: 20px 24px;
-  margin: 4px 0 30px;
+  padding: 16px 22px;
+  margin: 2px 30px 6px;
   box-shadow: 5px 6px 0 var(--pub-ink);
 }
 .lisons-public .bio-card .bio-text { flex: 1; }
@@ -235,12 +337,12 @@
 .lisons-public .bio-card .bio-favo { font-style: italic; color: var(--pub-ink-soft); font-size: 15px; }
 
 /* ---------------- GRID ---------------- */
-.lisons-public .shelf-wrap { padding: 24px 30px 80px; }
 .lisons-public .count-line {
   font-family: var(--hand);
-  font-size: 19px;
+  font-size: 18px;
   color: var(--pub-ink-soft);
-  margin: 6px 2px 22px;
+  margin: 0;
+  padding: 8px 30px 14px;
 }
 
 .lisons-public .book-grid {
@@ -752,11 +854,49 @@
   box-shadow: 8px 9px 0 rgba(47, 42, 38, .85);
 }
 
+@media (max-width: 860px) {
+  /* On phones the fixed-height shell is fragile (mobile address bars, tiny
+     viewports), so fall back to a normal scrolling document and stack the
+     sidebar as a horizontal strip above the content. */
+  .lisons-public.home-shell {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  .lisons-public .home-layout {
+    flex-direction: column;
+    overflow: visible;
+  }
+  .lisons-public .section-panel {
+    width: 100%;
+    border-right: none;
+    border-bottom: 3px solid var(--pub-line);
+    padding: 16px;
+    overflow: visible;
+  }
+  .lisons-public .panel-label { display: none; }
+  .lisons-public .section-nav {
+    flex-direction: row;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .lisons-public .section-link { width: auto; flex: none; white-space: nowrap; }
+  .lisons-public .home-main { overflow: visible; }
+  .lisons-public .author-bar { padding: 18px 16px 12px; }
+  .lisons-public .section-heading { padding: 4px 16px 0; }
+  .lisons-public .count-line { padding: 8px 16px 12px; }
+  .lisons-public .bio-card { margin: 2px 16px 6px; }
+  .lisons-public .shelf-scroll {
+    overflow: visible;
+    padding: 18px 16px 60px;
+  }
+}
+
 @media (max-width: 720px) {
   .lisons-public .nav-arrow { width: 48px; height: 48px; }
   .lisons-public .page-frame { max-width: 84vw; }
   .lisons-public .reader-titles .rt-title { font-size: 16px; }
   .lisons-public .mode-toggle button { padding: 7px 11px; font-size: 13px; }
-  .lisons-public .search { min-width: 0; }
-  .lisons-public .section-tabs { padding: 0 16px; overflow-x: auto; }
+  .lisons-public .search { width: min(220px, 50vw); }
 }

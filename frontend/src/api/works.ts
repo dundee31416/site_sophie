@@ -1,6 +1,6 @@
 import { apiFetch, ApiError } from "./client";
 
-export type WorkSection = "book" | "comic" | "drawing";
+export type WorkSection = "book" | "comic" | "drawing" | "craft";
 
 export type DigitalVariant = "enhanced" | "restyled";
 
@@ -174,9 +174,14 @@ export function transcribePage(workId: number, pageId: number): Promise<PageResp
   });
 }
 
-export function enhancePage(workId: number, pageId: number): Promise<PageResponse> {
+export function enhancePage(
+  workId: number,
+  pageId: number,
+  extraInstructions?: string,
+): Promise<PageResponse> {
   return apiFetch<PageResponse>(`/api/me/works/${workId}/pages/${pageId}/enhance`, {
     method: "POST",
+    body: { extra_instructions: extraInstructions?.trim() || null },
   });
 }
 
@@ -217,6 +222,7 @@ export const SECTION_LABELS: Record<WorkSection, string> = {
   book: "Livre",
   comic: "Bande dessinée",
   drawing: "Dessin",
+  craft: "Bricolage",
 };
 
 export const VARIANT_LABELS: Record<DigitalVariant, string> = {

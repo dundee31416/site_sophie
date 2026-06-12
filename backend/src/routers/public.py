@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from src.database.session import get_db
-from src.models import Page, User, UserRole, Work, WorkSection
+from src.models import SINGLE_IMAGE_SECTIONS, DigitalVariant, Page, User, UserRole, Work, WorkSection
 from src.schemas.public import PublicAuthor, PublicWorkDetail, PublicWorkSummary
 
 router = APIRouter(prefix="/api/public", tags=["public"])
@@ -39,6 +39,13 @@ def _first_page_path(work: Work) -> str | None:
     if not work.pages:
         return None
     first = min(work.pages, key=lambda p: p.idx)
+    # Drawings/crafts can be shown as their AI-improved version when picked.
+    if (
+        work.section in SINGLE_IMAGE_SECTIONS
+        and work.digital_variant == DigitalVariant.enhanced
+        and first.enhanced_path is not None
+    ):
+        return first.enhanced_path
     return first.scan_path
 
 

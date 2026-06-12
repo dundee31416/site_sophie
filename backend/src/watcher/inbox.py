@@ -4,10 +4,10 @@ Layout under INBOX_ROOT:
 
     <author-username>/<section>/<filename>          ← what the printer drops
 
-`<section>` is one of `book`, `comic`, `drawing`. Anything else is an error.
+`<section>` is one of `book`, `comic`, `drawing`, `craft`. Anything else is an error.
 
 For each new file:
-- drawings → immediately create a single-page Drawing Work and move the file
+- drawings / crafts → immediately create a single-page Work and move the file
   to the storage volume.
 - books / comics → move to `<storage>/<author>/pending/` and create a
   PendingFile row. The author assembles works from the UI later.
@@ -172,7 +172,9 @@ def process_inbox_file(path: Path) -> None:
             return
 
         if section_str == "drawing":
-            _ingest_drawing(db, user, path, ext)
+            _ingest_single_image(db, user, WorkSection.drawing, f"Dessin du {_date_fr()}", path, ext)
+        elif section_str == "craft":
+            _ingest_single_image(db, user, WorkSection.craft, f"Bricolage du {_date_fr()}", path, ext)
         elif section_str in ("book", "comic"):
             _ingest_pending(db, user, PendingSection(section_str), path, ext)
         else:
@@ -198,8 +200,10 @@ def _unique_slug(base: str, author_id: int, db) -> str:
     return slug
 
 
-def _ingest_drawing(db, user: User, src: Path, ext: str) -> None:
-    title = f"Dessin du {_date_fr()}"
+def _ingest_single_image(
+    db, user: User, section: WorkSection, title: str, src: Path, ext: str,
+) -> None:
+    """Create a single-page Work (drawing or craft) directly from one image."""
     # Race between SELECT (in _unique_slug) and INSERT can let two concurrent
     # ingests pick the same slug. Retry a handful of times against the unique
     # constraint before giving up.
@@ -210,7 +214,7 @@ def _ingest_drawing(db, user: User, src: Path, ext: str) -> None:
         slug = _unique_slug(base, user.id, db)
         work = Work(
             author_id=user.id,
-            section=WorkSection.drawing,
+            section=section,
             slug=slug,
             title=title,
         )
@@ -225,8 +229,8 @@ def _ingest_drawing(db, user: User, src: Path, ext: str) -> None:
             time.sleep(0.05 * (attempt + 1))
     if work is None:
         logger.error(
-            "inbox: failed to create drawing work for %s after 5 retries: %s",
-            src, last_exc,
+            "inbox: failed to create %s work for %s after 5 retries: %s",
+            section.value, src, last_exc,
         )
         _move_to_errors(src)
         return
@@ -242,7 +246,9 @@ def _ingest_drawing(db, user: User, src: Path, ext: str) -> None:
     )
     db.add(page)
     db.commit()
-    logger.info("inbox: ingested drawing %s as work=%s page=%s", src.name, work.id, page.id)
+    logger.info(
+        "inbox: ingested %s %s as work=%s page=%s", section.value, src.name, work.id, page.id,
+    )
 
 
 def _ingest_pending(

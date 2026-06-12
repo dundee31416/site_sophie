@@ -6,28 +6,23 @@ import type { WorkSection } from "../../api/works";
 import { AllAvatar, Avatar } from "../../components/Avatar";
 import { CoverArt } from "../../components/CoverArt";
 import { Icon } from "../../components/icons";
+import { LanguageToggle } from "../../components/LanguageToggle";
 import { Logo } from "../../components/Logo";
+import { TopNav } from "../../components/TopNav";
+import { useI18n } from "../../i18n/LanguageContext";
 
-const SECTION_TABS: { value: WorkSection; label: string }[] = [
-  { value: "book", label: "Livres" },
-  { value: "comic", label: "Bandes dessinées" },
-  { value: "drawing", label: "Dessins" },
+type SectionFilter = WorkSection | "all";
+
+const SECTION_TABS: { value: SectionFilter; icon: keyof typeof Icon }[] = [
+  { value: "all", icon: "grid" },
+  { value: "book", icon: "book" },
+  { value: "comic", icon: "comic" },
+  { value: "drawing", icon: "art" },
+  { value: "craft", icon: "craft" },
 ];
 
-const SECTION_TITLES: Record<WorkSection, { h1: string; sub: string }> = {
-  book: {
-    h1: "La bibliothèque de la maison",
-    sub: "Des histoires écrites, dessinées et inventées à la maison.",
-  },
-  comic: {
-    h1: "Les bandes dessinées de la maison",
-    sub: "Cases, bulles, et bruits d'animaux.",
-  },
-  drawing: {
-    h1: "La galerie de la maison",
-    sub: "Tous les dessins faits à la main.",
-  },
-};
+// Sections rendered as a square-thumbnail gallery rather than book covers.
+const GALLERY_SECTIONS: ReadonlySet<SectionFilter> = new Set(["drawing", "craft"]);
 
 function BookCard({ work }: { work: PublicWorkSummary }) {
   const effectiveCover =
@@ -35,7 +30,7 @@ function BookCard({ work }: { work: PublicWorkSummary }) {
       ? work.enhanced_cover_path
       : work.cover_variant === "restyled" && work.restyled_cover_path != null
         ? work.restyled_cover_path
-        : work.cover_path;
+        : (work.cover_path ?? work.first_page_path);
   return (
     <Link
       to={`/lecture/${work.author_username}/${work.slug}`}
@@ -71,6 +66,7 @@ function BookCard({ work }: { work: PublicWorkSummary }) {
 }
 
 function DrawingTile({ work }: { work: PublicWorkSummary }) {
+  const { t } = useI18n();
   const src = work.first_page_path ?? work.cover_path;
   return (
     <Link
@@ -85,7 +81,9 @@ function DrawingTile({ work }: { work: PublicWorkSummary }) {
       )}
       <div className="meta">
         {work.title}
-        <div className="author">par {work.author_display_name ?? work.author_username}</div>
+        <div className="author">
+          {t("work.by", { name: work.author_display_name ?? work.author_username })}
+        </div>
       </div>
     </Link>
   );
@@ -98,6 +96,7 @@ function AuthorBio({
   author: PublicAuthor;
   workCount: number;
 }) {
+  const { t, countWorks } = useI18n();
   return (
     <div
       className="bio-card"
@@ -107,8 +106,8 @@ function AuthorBio({
       <div className="bio-text">
         <h2>{author.display_name ?? author.username}</h2>
         <div className="bio-meta">
-          {author.age != null ? `${author.age} ans · ` : ""}
-          {workCount} {workCount > 1 ? "créations" : "création"}
+          {author.age != null ? `${t("author.years", { n: author.age })} · ` : ""}
+          {countWorks(workCount)}
         </div>
         {author.bio != null && author.bio.trim() !== "" && <p>{author.bio}</p>}
         {author.favo != null && author.favo.trim() !== "" && (
@@ -120,7 +119,8 @@ function AuthorBio({
 }
 
 export function HomePage() {
-  const [section, setSection] = useState<WorkSection>("book");
+  const { t, countWorks } = useI18n();
+  const [section, setSection] = useState<SectionFilter>("all");
   const [authorFilter, setAuthorFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [authors, setAuthors] = useState<PublicAuthor[]>([]);
@@ -134,7 +134,7 @@ export function HomePage() {
   useEffect(() => {
     setLoadingWorks(true);
     publicApi
-      .listWorks({ section })
+      .listWorks(section === "all" ? {} : { section })
       .then(setWorks)
       .catch(() => setWorks([]))
       .finally(() => setLoadingWorks(false));
@@ -156,100 +156,119 @@ export function HomePage() {
     ? works.filter((w) => w.author_username === activeAuthor.username).length
     : 0;
 
-  const titles = SECTION_TITLES[section];
-
   return (
-    <div className="lisons-public">
-      <div className="app-bg">
-        <header className="site-header">
-          <Logo
-            onClick={() => {
-              setAuthorFilter("all");
-              setQuery("");
-            }}
+    <div className="lisons-public home-shell">
+      <header className="site-header">
+        <Logo
+          onClick={() => {
+            setSection("all");
+            setAuthorFilter("all");
+            setQuery("");
+          }}
+        />
+        <label className="search">
+          <Icon.search size={18} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("search.placeholder")}
           />
-          <label className="search">
-            <Icon.search size={20} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Chercher un titre…"
-            />
-          </label>
-        </header>
+        </label>
+        <LanguageToggle />
+      </header>
 
-        <div className="section-tabs">
-          {SECTION_TABS.map((t) => (
-            <button
-              key={t.value}
-              className={`section-tab ${section === t.value ? "active" : ""}`}
-              onClick={() => {
-                setSection(t.value);
-                setAuthorFilter("all");
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <TopNav home />
 
-        <section className="hero">
-          <h1>{titles.h1}</h1>
-          <p>{titles.sub}</p>
-          <div className="filter-label">Choisis un auteur&nbsp;:</div>
-          <div className="author-filter">
-            <button className="author-pick" onClick={() => setAuthorFilter("all")}>
-              <AllAvatar size={64} active={authorFilter === "all"} />
-              <span className="pick-name">Tout le monde</span>
-              <span className="pick-meta">
-                {works.length} {works.length > 1 ? "créations" : "création"}
-              </span>
-            </button>
-            {authors.map((a) => (
-              <button
-                key={a.username}
-                className="author-pick"
-                onClick={() => setAuthorFilter(a.username)}
-              >
-                <Avatar author={a} size={64} active={authorFilter === a.username} />
-                <span className="pick-name">{a.display_name ?? a.username}</span>
-                <span className="pick-meta">{a.age != null ? `${a.age} ans` : "—"}</span>
-              </button>
-            ))}
+      <div className="home-layout app-bg">
+        <aside className="section-panel">
+          <div className="panel-label">{t("nav.sections")}</div>
+          <nav className="section-nav">
+            {SECTION_TABS.map((tab) => {
+              const IconCmp = Icon[tab.icon];
+              return (
+                <button
+                  key={tab.value}
+                  className={`section-link ${section === tab.value ? "active" : ""}`}
+                  onClick={() => {
+                    setSection(tab.value);
+                    setAuthorFilter("all");
+                  }}
+                >
+                  <span className="section-link-icon">
+                    <IconCmp size={20} />
+                  </span>
+                  {t(`section.${tab.value}.label`)}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <main className="home-main">
+          <div className="main-head">
+            <section className="author-bar">
+              <div className="filter-label">{t("author.choose")}</div>
+              <div className="author-filter">
+                <button className="author-pick" onClick={() => setAuthorFilter("all")}>
+                  <AllAvatar size={80} active={authorFilter === "all"} />
+                  <span className="pick-name">{t("author.everyone")}</span>
+                  <span className="pick-meta">{countWorks(works.length)}</span>
+                </button>
+                {authors.map((a) => (
+                  <button
+                    key={a.username}
+                    className="author-pick"
+                    onClick={() => setAuthorFilter(a.username)}
+                  >
+                    <Avatar author={a} size={80} active={authorFilter === a.username} />
+                    <span className="pick-name">{a.display_name ?? a.username}</span>
+                    <span className="pick-meta">
+                      {a.age != null ? t("author.years", { n: a.age }) : t("author.unknownAge")}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {activeAuthor ? (
+              <AuthorBio author={activeAuthor} workCount={activeAuthorWorkCount} />
+            ) : (
+              <div className="section-heading">
+                <h1>{t(`section.${section}.h1`)}</h1>
+                <p>{t(`section.${section}.sub`)}</p>
+              </div>
+            )}
+
+            <div className="count-line">
+              {loadingWorks
+                ? t("count.loading")
+                : filtered.length === 0
+                  ? t("count.none")
+                  : `${countWorks(filtered.length)}${query ? t("count.forQuery", { q: query }) : ""}`}
+            </div>
           </div>
-        </section>
 
-        <div className="shelf-wrap">
-          {activeAuthor && (
-            <AuthorBio author={activeAuthor} workCount={activeAuthorWorkCount} />
-          )}
-          <div className="count-line">
-            {loadingWorks
-              ? "Chargement…"
-              : filtered.length === 0
-                ? "Aucune création trouvée…"
-                : `${filtered.length} ${filtered.length > 1 ? "créations" : "création"}${query ? ` pour « ${query} »` : ""}`}
+          <div className="shelf-scroll">
+            {!loadingWorks && filtered.length === 0 ? (
+              <div className="empty">
+                <div className="big">{t("empty.title")}</div>
+                <div>{t("empty.sub")}</div>
+              </div>
+            ) : GALLERY_SECTIONS.has(section) ? (
+              <div className="gallery">
+                {filtered.map((w) => (
+                  <DrawingTile key={w.id} work={w} />
+                ))}
+              </div>
+            ) : (
+              <div className="book-grid">
+                {filtered.map((w) => (
+                  <BookCard key={w.id} work={w} />
+                ))}
+              </div>
+            )}
           </div>
-
-          {!loadingWorks && filtered.length === 0 ? (
-            <div className="empty">
-              <div className="big">Oups, rien ici !</div>
-              <div>Essaie un autre titre ou un autre auteur.</div>
-            </div>
-          ) : section === "drawing" ? (
-            <div className="gallery">
-              {filtered.map((w) => (
-                <DrawingTile key={w.id} work={w} />
-              ))}
-            </div>
-          ) : (
-            <div className="book-grid">
-              {filtered.map((w) => (
-                <BookCard key={w.id} work={w} />
-              ))}
-            </div>
-          )}
-        </div>
+        </main>
       </div>
     </div>
   );

@@ -11,6 +11,13 @@ class WorkSection(str, enum.Enum):
     book = "book"
     comic = "comic"
     drawing = "drawing"
+    craft = "craft"
+
+
+# Sections whose works hold exactly one image, are created directly by the
+# watcher (no pending tray), auto-enhance only, and render as a single
+# fullscreen image rather than a paginated reader.
+SINGLE_IMAGE_SECTIONS = frozenset({WorkSection.drawing, WorkSection.craft})
 
 
 class DigitalVariant(str, enum.Enum):

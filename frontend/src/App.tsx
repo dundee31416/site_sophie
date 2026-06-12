@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import * as pendingApi from "./api/pending";
-import { useAuth } from "./auth/AuthContext";
+import { Route, Routes } from "react-router-dom";
+import { TopNav } from "./components/TopNav";
 import { HomePage } from "./pages/public/HomePage";
 import { WorkReader } from "./pages/public/WorkReader";
 import { LoginPage } from "./pages/auth/LoginPage";
@@ -12,71 +10,6 @@ import { ProfileEdit } from "./pages/author/ProfileEdit";
 import { UploadWizard } from "./pages/author/UploadWizard";
 import { WorkEdit } from "./pages/author/WorkEdit";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
-
-function TopNav() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const [pendingCount, setPendingCount] = useState(0);
-
-  // Poll the pending tray count for authors so the nav badge stays current.
-  useEffect(() => {
-    if (user?.role !== "author") {
-      setPendingCount(0);
-      return;
-    }
-    let cancelled = false;
-    async function refresh() {
-      try {
-        const list = await pendingApi.listPending();
-        if (!cancelled) setPendingCount(list.length);
-      } catch {
-        // ignore — keeps the previous count
-      }
-    }
-    void refresh();
-    const t = setInterval(() => void refresh(), 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, [user?.role, user?.id]);
-
-  // The public reader handles its own header; suppress the global top nav
-  // while inside one to avoid double-bars.
-  if (pathname.startsWith("/lecture/")) return null;
-
-  async function onLogout() {
-    await logout();
-    navigate("/login", { replace: true });
-  }
-
-  return (
-    <nav className="top">
-      <Link to="/" style={{ textDecoration: "none", fontWeight: 700 }}>
-        Lisons!
-      </Link>
-      {user?.role === "admin" && <Link to="/admin/authors">Auteurs</Link>}
-      {user?.role === "author" && <Link to="/me/dashboard">Mon espace</Link>}
-      {user?.role === "author" && pendingCount > 0 && (
-        <Link to="/me/pending">À organiser ({pendingCount})</Link>
-      )}
-      <div className="spacer" />
-      {user == null ? (
-        <Link to="/login">Se connecter</Link>
-      ) : (
-        <>
-          <span className="who">
-            {user.display_name ?? user.username} ({user.role})
-          </span>
-          <button className="ghost" onClick={() => void onLogout()}>
-            Déconnexion
-          </button>
-        </>
-      )}
-    </nav>
-  );
-}
 
 export function App() {
   return (

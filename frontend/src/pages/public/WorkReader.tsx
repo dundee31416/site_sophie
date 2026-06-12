@@ -4,6 +4,7 @@ import * as publicApi from "../../api/public";
 import type { PublicWorkDetail } from "../../api/public";
 import type { PageResponse } from "../../api/works";
 import { Icon } from "../../components/icons";
+import { useI18n } from "../../i18n/LanguageContext";
 
 type Mode = "digital" | "scan";
 type VariantField = "enhanced_path" | "restyled_path" | null;
@@ -13,6 +14,7 @@ function renderDigital(
   workTitle: string,
   pageIdx: number,
   variantField: VariantField,
+  emptyLabel: string,
 ) {
   // Legacy: an HTML file already laid out as a page.
   if (page.html_path != null) {
@@ -54,13 +56,14 @@ function renderDigital(
         </div>
       )}
       {imageSrc == null && (text == null || text === "") && (
-        <p style={{ padding: 30 }}>{page.illo_label ?? "(page vide)"}</p>
+        <p style={{ padding: 30 }}>{page.illo_label ?? emptyLabel}</p>
       )}
     </div>
   );
 }
 
 export function WorkReader() {
+  const { t } = useI18n();
   const { author, slug } = useParams<{ author: string; slug: string }>();
   const navigate = useNavigate();
 
@@ -128,11 +131,11 @@ export function WorkReader() {
         <div className="reader">
           <div className="reader-bar">
             <button className="btn-back" onClick={close}>
-              <Icon.back /> Étagère
+              <Icon.back /> {t("reader.shelf")}
             </button>
           </div>
           <main style={{ padding: 30 }}>
-            <h1>Œuvre introuvable</h1>
+            <h1>{t("reader.notFound")}</h1>
             <p>{error}</p>
           </main>
         </div>
@@ -144,32 +147,36 @@ export function WorkReader() {
     return (
       <div className="lisons-public">
         <div className="reader">
-          <main style={{ padding: 30 }}>Chargement…</main>
+          <main style={{ padding: 30 }}>{t("reader.loading")}</main>
         </div>
       </div>
     );
   }
 
-  // Drawings: single-image fullscreen view, no pagination, no mode toggle.
-  if (work.section === "drawing") {
-    const img = work.pages[0]?.scan_path ?? work.cover_path;
+  // Drawings & crafts: single-image fullscreen view, no pagination, no toggle.
+  if (work.section === "drawing" || work.section === "craft") {
+    const firstPage = work.pages[0];
+    const img =
+      work.digital_variant === "enhanced" && firstPage?.enhanced_path != null
+        ? firstPage.enhanced_path
+        : (firstPage?.scan_path ?? work.cover_path);
     return (
       <div className="lisons-public">
         <div className="reader">
           <div className="reader-bar">
             <button className="btn-back" onClick={close}>
-              <Icon.back /> Étagère
+              <Icon.back /> {t("reader.shelf")}
             </button>
             <div className="reader-titles">
               <div className="rt-title">{work.title}</div>
               <div className="rt-author">
-                par {work.author_display_name ?? work.author_username}
-                {work.author_age != null ? `, ${work.author_age} ans` : ""}
+                {t("work.by", { name: work.author_display_name ?? work.author_username })}
+                {work.author_age != null ? t("reader.ageSuffix", { n: work.author_age }) : ""}
               </div>
             </div>
           </div>
           <div className="drawing-fullscreen">
-            {img ? <img src={img} alt={work.title} /> : <p>Aucune image.</p>}
+            {img ? <img src={img} alt={work.title} /> : <p>{t("reader.noImage")}</p>}
           </div>
         </div>
       </div>
@@ -202,13 +209,13 @@ export function WorkReader() {
                 className={mode === "digital" ? "on" : ""}
                 onClick={() => setMode("digital")}
               >
-                <Icon.book size={17} /> Numérique
+                <Icon.book size={17} /> {t("reader.digital")}
               </button>
               <button
                 className={mode === "scan" ? "on" : ""}
                 onClick={() => setMode("scan")}
               >
-                <Icon.scan size={17} /> Original
+                <Icon.scan size={17} /> {t("reader.original")}
               </button>
             </div>
           )}
@@ -219,7 +226,7 @@ export function WorkReader() {
             className="nav-arrow"
             onClick={() => go(-1)}
             disabled={pageIdx === 0}
-            aria-label="Page précédente"
+            aria-label={t("reader.prevPage")}
           >
             <Icon.arrowL />
           </button>
@@ -230,9 +237,9 @@ export function WorkReader() {
               className={`page-inner ${dir > 0 ? "page-flip-enter" : "page-flip-back"}`}
             >
               {page == null ? (
-                <p>Aucune page</p>
+                <p>{t("reader.noPage")}</p>
               ) : mode === "digital" ? (
-                renderDigital(page, work.title, pageIdx, variantField)
+                renderDigital(page, work.title, pageIdx, variantField, t("reader.emptyPage"))
               ) : page.scan_path != null ? (
                 <div className="scan-slot">
                   <div className="scan-tape scan-tape-l" />
@@ -247,7 +254,7 @@ export function WorkReader() {
                 <div className="scan-slot">
                   <div className="scan-tape scan-tape-l" />
                   <div className="scan-tape scan-tape-r" />
-                  <p style={{ padding: 30 }}>{page.illo_label ?? "(page vide)"}</p>
+                  <p style={{ padding: 30 }}>{page.illo_label ?? t("reader.emptyPage")}</p>
                 </div>
               )}
             </div>
@@ -257,7 +264,7 @@ export function WorkReader() {
             className="nav-arrow"
             onClick={() => go(1)}
             disabled={pageIdx >= total - 1}
-            aria-label="Page suivante"
+            aria-label={t("reader.nextPage")}
           >
             <Icon.arrowR />
           </button>
@@ -265,7 +272,7 @@ export function WorkReader() {
 
         <div className="dots-row">
           <span className="page-counter">
-            Page {pageIdx + 1} / {total}
+            {t("reader.page", { n: pageIdx + 1, total })}
           </span>
           <span className="dots-track">
             {work.pages.map((_, i) => (
@@ -276,7 +283,7 @@ export function WorkReader() {
                   setDir(i > pageIdx ? 1 : -1);
                   setPageIdx(i);
                 }}
-                aria-label={`Page ${i + 1}`}
+                aria-label={t("reader.pageN", { n: i + 1 })}
               />
             ))}
           </span>

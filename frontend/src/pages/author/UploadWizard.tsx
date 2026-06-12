@@ -10,7 +10,11 @@ const SECTION_OPTIONS: { value: WorkSection; label: string; hint: string }[] = [
   { value: "book", label: "📖 Livre", hint: "Plusieurs pages avec des dessins et du texte." },
   { value: "comic", label: "💬 Bande dessinée", hint: "Plusieurs pages avec des cases et des bulles." },
   { value: "drawing", label: "🎨 Dessin", hint: "Une seule image (dessin à la craie, peinture, etc.)." },
+  { value: "craft", label: "✂️ Bricolage", hint: "Une seule photo d'un objet bricolé à la main." },
 ];
+
+// Sections that hold exactly one image (no multi-page upload).
+const SINGLE_IMAGE: WorkSection[] = ["drawing", "craft"];
 
 export function UploadWizard() {
   const navigate = useNavigate();
@@ -23,7 +27,7 @@ export function UploadWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const multiFile = section !== "drawing";
+  const multiFile = !SINGLE_IMAGE.includes(section);
 
   function onFilesChange(e: ChangeEvent<HTMLInputElement>) {
     const list = e.target.files;
@@ -37,8 +41,8 @@ export function UploadWizard() {
       setError("Choisis au moins un fichier.");
       return;
     }
-    if (section === "drawing" && files.length !== 1) {
-      setError("Un dessin doit être un seul fichier.");
+    if (SINGLE_IMAGE.includes(section) && files.length !== 1) {
+      setError("Ce type de création doit être un seul fichier.");
       return;
     }
     setSubmitting(true);
