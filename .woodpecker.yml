@@ -1,8 +1,30 @@
 # CI/CD Pipeline for Lisons! (site_sophie)
-# Builds backend + frontend Docker images, pushes to GHCR, and deploys to the
-# TrueNAS host over SSH. Legacy single-image static-site pipeline replaced in
-# Phase 1-5 of the FastAPI + React refactor.
+# Lint + test, build backend + frontend Docker images, push to GHCR, and
+# deploy to the TrueNAS host over SSH.
+#
+# Only main deploys; every image is tagged `latest` AND with the commit SHA
+# so a bad deploy can be rolled back by pinning the previous SHA tag.
+when:
+  - event: push
+    branch: main
+
 steps:
+  - name: test-backend
+    image: python:3.12-slim
+    commands:
+      - cd backend
+      - pip install --quiet --no-cache-dir -r requirements-dev.txt
+      - ruff check src tests
+      - pytest -q
+
+  - name: lint-frontend
+    image: node:20-alpine
+    commands:
+      - cd frontend
+      - npm ci --no-audit --no-fund
+      - npm run lint
+      - npx tsc -b --force
+
   - name: build-backend
     image: plugins/docker
     settings:
@@ -12,6 +34,7 @@ steps:
       context: backend
       tags:
         - latest
+        - ${CI_COMMIT_SHA:0:8}
       username:
         from_secret: docker_username
       password:
@@ -27,6 +50,7 @@ steps:
       target: production
       tags:
         - latest
+        - ${CI_COMMIT_SHA:0:8}
       username:
         from_secret: docker_username
       password:
@@ -46,6 +70,7 @@ steps:
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/pg_data
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/storage
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/inbox
+        - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/backups
 
   - name: copy-compose
     image: appleboy/drone-scp
