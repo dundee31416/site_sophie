@@ -1,12 +1,16 @@
 # CI/CD Pipeline for Lisons! (site_sophie)
-# Lint + test, build backend + frontend Docker images, push to GHCR, and
-# deploy to the TrueNAS host over SSH.
 #
-# Only main deploys; every image is tagged `latest` AND with the commit SHA
-# so a bad deploy can be rolled back by pinning the previous SHA tag.
+# PRs and pushes to main run the gates: lint, tests, secret scan, dependency
+# audits. Pushes to main additionally build backend+frontend images, push to
+# GHCR tagged `latest` + short commit SHA, Trivy-scan the pushed images
+# (CRITICAL vulnerabilities block the deploy), and deploy over SSH.
+#
+# Rollback: set IMAGE_TAG=<previous sha> in the host .env and re-run
+# `docker compose -f docker-compose.prod.yml up -d`.
 when:
   - event: push
     branch: main
+  - event: pull_request
 
 steps:
   - name: test-backend
@@ -25,6 +29,25 @@ steps:
       - npm run lint
       - npx tsc -b --force
 
+  - name: secret-scan
+    # run `renovate-onboard` to pin this tag
+    image: zricethezav/gitleaks:latest
+    commands:
+      - gitleaks detect --source . --no-banner --redact
+
+  - name: audit-backend-deps
+    image: python:3.12-slim
+    commands:
+      - pip install --quiet --no-cache-dir pip-audit
+      - pip-audit -r backend/requirements.txt
+
+  - name: audit-frontend-deps
+    image: node:20-alpine
+    commands:
+      - cd frontend
+      # audits package-lock.json directly; no node_modules install needed
+      - npm audit --omit=dev --audit-level=high
+
   - name: build-backend
     image: plugins/docker
     settings:
@@ -39,6 +62,9 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    when:
+      - event: push
+        branch: main
 
   - name: build-frontend
     image: plugins/docker
@@ -55,6 +81,24 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    when:
+      - event: push
+        branch: main
+
+  - name: scan-images
+    # run `renovate-onboard` to pin this tag
+    image: aquasec/trivy:latest
+    environment:
+      TRIVY_USERNAME:
+        from_secret: docker_username
+      TRIVY_PASSWORD:
+        from_secret: docker_password
+    commands:
+      - trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed ghcr.io/dundee31416/site_sophie-backend:${CI_COMMIT_SHA:0:8}
+      - trivy image --exit-code 1 --severity CRITICAL --ignore-unfixed ghcr.io/dundee31416/site_sophie-frontend:${CI_COMMIT_SHA:0:8}
+    when:
+      - event: push
+        branch: main
 
   - name: prepare-deploy-dir
     image: appleboy/drone-ssh
@@ -71,6 +115,9 @@ steps:
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/storage
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/inbox
         - mkdir -p /mnt/ssd_pool/apps_data/site_sophie/backups
+    when:
+      - event: push
+        branch: main
 
   - name: copy-compose
     image: appleboy/drone-scp
@@ -85,6 +132,9 @@ steps:
       source: docker-compose.prod.yml
       target: /tmp
       strip_components: 0
+    when:
+      - event: push
+        branch: main
 
   - name: deploy
     image: appleboy/drone-ssh
@@ -103,11 +153,15 @@ steps:
         - |
           bash <<'DEPLOY_SCRIPT_END'
           set -e
-          echo "=== deploy script v5 (sudo docker) starting ==="
-          sudo docker login ghcr.io -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD"
+          echo "$DOCKER_PASSWORD" | sudo docker login ghcr.io -u "$DOCKER_USERNAME" --password-stdin
           mv /tmp/docker-compose.prod.yml /mnt/ssd_pool/apps_data/site_sophie/docker-compose.prod.yml
           cd /mnt/ssd_pool/apps_data/site_sophie
           test -f .env || { echo "FATAL: .env missing in apps_data/site_sophie"; exit 1; }
+          if grep -q '^IMAGE_TAG=' .env; then
+            sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${CI_COMMIT_SHA:0:8}/' .env
+          else
+            echo 'IMAGE_TAG=${CI_COMMIT_SHA:0:8}' >> .env
+          fi
           sudo docker compose -f docker-compose.prod.yml pull
           sudo docker compose -f docker-compose.prod.yml up -d --remove-orphans
           sudo docker image prune -f
@@ -117,3 +171,6 @@ steps:
         from_secret: docker_username
       DOCKER_PASSWORD:
         from_secret: docker_password
+    when:
+      - event: push
+        branch: main
