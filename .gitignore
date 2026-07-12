@@ -16,6 +16,11 @@ node_modules/
 dist/
 build/
 
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+
 # TypeScript build artifacts
 *.tsbuildinfo
 frontend/vite.config.js
