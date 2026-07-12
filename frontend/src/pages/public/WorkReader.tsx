@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import * as publicApi from "../../api/public";
 import type { PublicWorkDetail } from "../../api/public";
@@ -8,6 +8,32 @@ import { useI18n } from "../../i18n/LanguageContext";
 
 type Mode = "digital" | "scan";
 type VariantField = "enhanced_path" | "restyled_path" | null;
+
+const SPREAD_BREAKPOINT = 1100;
+const DOTS_MAX = 8;
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return false;
+    }
+    return window.matchMedia(query).matches;
+  });
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mql = window.matchMedia(query);
+    const onChange = (e: MediaQueryListEvent) => setMatches(e.matches);
+    setMatches(mql.matches);
+    if (typeof mql.addEventListener === "function") {
+      mql.addEventListener("change", onChange);
+      return () => mql.removeEventListener("change", onChange);
+    }
+    // Safari < 14 fallback
+    mql.addListener(onChange);
+    return () => mql.removeListener(onChange);
+  }, [query]);
+  return matches;
+}
 
 function renderDigital(
   page: PageResponse,
@@ -62,6 +88,29 @@ function renderDigital(
   );
 }
 
+function renderScan(page: PageResponse, workTitle: string, pageIdx: number, emptyLabel: string) {
+  if (page.scan_path != null) {
+    return (
+      <div className="scan-slot">
+        <div className="scan-tape scan-tape-l" />
+        <div className="scan-tape scan-tape-r" />
+        <img
+          className="scan-image"
+          src={page.scan_path}
+          alt={`${workTitle} — page ${pageIdx + 1}`}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="scan-slot">
+      <div className="scan-tape scan-tape-l" />
+      <div className="scan-tape scan-tape-r" />
+      <p style={{ padding: 30 }}>{page.illo_label ?? emptyLabel}</p>
+    </div>
+  );
+}
+
 export function WorkReader() {
   const { t } = useI18n();
   const { author, slug } = useParams<{ author: string; slug: string }>();
@@ -72,6 +121,8 @@ export function WorkReader() {
   const [pageIdx, setPageIdx] = useState(0);
   const [mode, setMode] = useState<Mode>("digital");
   const [dir, setDir] = useState<1 | -1>(1);
+
+  const isWide = useMediaQuery(`(min-width: ${SPREAD_BREAKPOINT}px)`);
 
   useEffect(() => {
     if (author == null || slug == null) return;
@@ -100,15 +151,39 @@ export function WorkReader() {
     variantField != null && (work?.pages.some((p) => p[variantField] != null) ?? false);
   const hasDigitalContent = hasAnyHtml || hasAnyText || hasAnyVariantImage;
 
+  const isPaginated = work?.section === "book" || work?.section === "comic";
+  // Two-page spread on wide screens for multi-page books/comics.
+  // Legacy html_path pages opt out (their iframes don't pair cleanly).
+  const spread = isPaginated && isWide && total > 1 && !hasAnyHtml;
+  const step = spread ? 2 : 1;
+
+  // When spread mode toggles on, snap to an even page index so the spread is aligned.
+  useEffect(() => {
+    if (spread && pageIdx % 2 === 1) {
+      setPageIdx((p) => p - 1);
+    }
+  }, [spread, pageIdx]);
+
   const go = useCallback(
     (d: 1 | -1) => {
       setPageIdx((p) => {
-        const n = Math.min(total - 1, Math.max(0, p + d));
+        const target = p + d * step;
+        const n = Math.min(total - 1, Math.max(0, target));
         if (n !== p) setDir(d);
         return n;
       });
     },
-    [total],
+    [total, step],
+  );
+
+  const jumpTo = useCallback(
+    (idx: number) => {
+      const snapped = spread ? idx - (idx % 2) : idx;
+      const clamped = Math.min(total - 1, Math.max(0, snapped));
+      setDir(clamped > pageIdx ? 1 : -1);
+      setPageIdx(clamped);
+    },
+    [spread, total, pageIdx],
   );
 
   const close = useCallback(() => navigate("/"), [navigate]);
@@ -124,6 +199,12 @@ export function WorkReader() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [go, close]);
+
+  const progress = useMemo(() => {
+    if (total <= 1) return 0;
+    const rightShown = spread && pageIdx + 1 < total ? pageIdx + 1 : pageIdx;
+    return ((rightShown + 1) / total) * 100;
+  }, [total, pageIdx, spread]);
 
   if (error != null) {
     return (
@@ -174,6 +255,7 @@ export function WorkReader() {
                 {work.author_age != null ? t("reader.ageSuffix", { n: work.author_age }) : ""}
               </div>
             </div>
+            <span className="reader-bar-end" />
           </div>
           <div className="drawing-fullscreen">
             {img ? <img src={img} alt={work.title} /> : <p>{t("reader.noImage")}</p>}
@@ -183,23 +265,37 @@ export function WorkReader() {
     );
   }
 
-  const page = work.pages[pageIdx];
+  const leftIdx = pageIdx;
+  const rightIdx = pageIdx + 1;
+  const leftPage = work.pages[leftIdx];
+  const rightPage = rightIdx < total ? work.pages[rightIdx] : null;
+
+  function renderPage(p: PageResponse | undefined | null) {
+    if (p == null) return <div className="page-blank" />;
+    if (mode === "digital") {
+      return renderDigital(p, work!.title, leftIdx, variantField, t("reader.emptyPage"));
+    }
+    return renderScan(p, work!.title, leftIdx, t("reader.emptyPage"));
+  }
+
+  const atStart = pageIdx === 0;
+  const atEnd = spread ? pageIdx + step >= total : pageIdx >= total - 1;
 
   return (
     <div className="lisons-public">
       <div className="reader">
         <div className="reader-bar">
           <button className="btn-back" onClick={close}>
-            <Icon.back /> Étagère
+            <Icon.back /> {t("reader.shelf")}
           </button>
           <div className="reader-titles">
             <div className="rt-title">{work.title}</div>
             <div className="rt-author">
-              par {work.author_display_name ?? work.author_username}
-              {work.author_age != null ? `, ${work.author_age} ans` : ""}
+              {t("work.by", { name: work.author_display_name ?? work.author_username })}
+              {work.author_age != null ? t("reader.ageSuffix", { n: work.author_age }) : ""}
             </div>
           </div>
-          {hasDigitalContent && (
+          {hasDigitalContent ? (
             <div className="mode-toggle" data-mode={mode}>
               <span
                 className="mode-pill"
@@ -218,52 +314,45 @@ export function WorkReader() {
                 <Icon.scan size={17} /> {t("reader.original")}
               </button>
             </div>
+          ) : (
+            <span className="reader-bar-end" />
           )}
         </div>
 
         <div className="reader-stage">
           <button
-            className="nav-arrow"
+            className="nav-arrow nav-arrow-prev"
             onClick={() => go(-1)}
-            disabled={pageIdx === 0}
+            disabled={atStart}
             aria-label={t("reader.prevPage")}
           >
             <Icon.arrowL />
           </button>
 
-          <div className="page-frame">
-            <div
-              key={`${mode}-${pageIdx}`}
-              className={`page-inner ${dir > 0 ? "page-flip-enter" : "page-flip-back"}`}
-            >
-              {page == null ? (
-                <p>{t("reader.noPage")}</p>
-              ) : mode === "digital" ? (
-                renderDigital(page, work.title, pageIdx, variantField, t("reader.emptyPage"))
-              ) : page.scan_path != null ? (
-                <div className="scan-slot">
-                  <div className="scan-tape scan-tape-l" />
-                  <div className="scan-tape scan-tape-r" />
-                  <img
-                    className="scan-image"
-                    src={page.scan_path}
-                    alt={`${work.title} — page ${pageIdx + 1}`}
-                  />
-                </div>
-              ) : (
-                <div className="scan-slot">
-                  <div className="scan-tape scan-tape-l" />
-                  <div className="scan-tape scan-tape-r" />
-                  <p style={{ padding: 30 }}>{page.illo_label ?? t("reader.emptyPage")}</p>
-                </div>
-              )}
-            </div>
+          <div className={`page-frame ${spread ? "spread" : ""}`}>
+            {spread ? (
+              <div
+                key={`spread-${mode}-${leftIdx}`}
+                className={`page-pair ${dir > 0 ? "page-flip-enter" : "page-flip-back"}`}
+              >
+                <div className="page-side page-side-l">{renderPage(leftPage)}</div>
+                <div className="page-side page-side-r">{renderPage(rightPage)}</div>
+                <div className="page-gutter" aria-hidden />
+              </div>
+            ) : (
+              <div
+                key={`${mode}-${pageIdx}`}
+                className={`page-inner ${dir > 0 ? "page-flip-enter" : "page-flip-back"}`}
+              >
+                {leftPage == null ? <p>{t("reader.noPage")}</p> : renderPage(leftPage)}
+              </div>
+            )}
           </div>
 
           <button
-            className="nav-arrow"
+            className="nav-arrow nav-arrow-next"
             onClick={() => go(1)}
-            disabled={pageIdx >= total - 1}
+            disabled={atEnd}
             aria-label={t("reader.nextPage")}
           >
             <Icon.arrowR />
@@ -272,21 +361,42 @@ export function WorkReader() {
 
         <div className="dots-row">
           <span className="page-counter">
-            {t("reader.page", { n: pageIdx + 1, total })}
+            {spread && rightPage != null
+              ? `${leftIdx + 1}–${rightIdx + 1} / ${total}`
+              : t("reader.page", { n: pageIdx + 1, total })}
           </span>
-          <span className="dots-track">
-            {work.pages.map((_, i) => (
-              <button
-                key={i}
-                className={`pdot ${i === pageIdx ? "cur" : i < pageIdx ? "done" : ""}`}
-                onClick={() => {
-                  setDir(i > pageIdx ? 1 : -1);
-                  setPageIdx(i);
-                }}
-                aria-label={t("reader.pageN", { n: i + 1 })}
+          {total <= DOTS_MAX ? (
+            <span className="dots-track">
+              {work.pages.map((_, i) => (
+                <button
+                  key={i}
+                  className={`pdot ${i === pageIdx || (spread && i === rightIdx) ? "cur" : i < pageIdx ? "done" : ""}`}
+                  onClick={() => jumpTo(i)}
+                  aria-label={t("reader.pageN", { n: i + 1 })}
+                />
+              ))}
+            </span>
+          ) : (
+            <div
+              className="progress-track"
+              role="slider"
+              aria-valuemin={1}
+              aria-valuemax={total}
+              aria-valuenow={pageIdx + 1}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                jumpTo(Math.floor(ratio * total));
+              }}
+            >
+              <div className="progress-fill" style={{ width: `${progress}%` }} />
+              <div
+                className="progress-thumb"
+                style={{ left: `${progress}%` }}
+                aria-hidden
               />
-            ))}
-          </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

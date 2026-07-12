@@ -52,6 +52,13 @@ const fr = {
   "works.one": "création",
   "works.other": "créations",
 
+  // Active filter chips
+  "filter.section": "Section : {label}",
+  "filter.author": "Auteur : {name}",
+  "filter.query": "« {q} »",
+  "filter.clearAll": "Tout effacer",
+  "filter.remove": "Retirer ce filtre",
+
   // Empty state
   "empty.title": "Oups, rien ici !",
   "empty.sub": "Essaie un autre titre ou un autre auteur.",
@@ -114,6 +121,13 @@ const en: Record<TranslationKey, string> = {
   "count.forQuery": " for “{q}”",
   "works.one": "creation",
   "works.other": "creations",
+
+  // Active filter chips
+  "filter.section": "Section: {label}",
+  "filter.author": "Author: {name}",
+  "filter.query": "“{q}”",
+  "filter.clearAll": "Clear all",
+  "filter.remove": "Remove this filter",
 
   // Empty state
   "empty.title": "Oops, nothing here!",

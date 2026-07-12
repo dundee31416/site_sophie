@@ -4,6 +4,7 @@ import { thumbUrl } from "../../api/images";
 import * as publicApi from "../../api/public";
 import type { PublicAuthor, PublicWorkSummary } from "../../api/public";
 import type { WorkSection } from "../../api/works";
+import { useAuth } from "../../auth/AuthContext";
 import { AllAvatar, Avatar } from "../../components/Avatar";
 import { CoverArt } from "../../components/CoverArt";
 import { Icon } from "../../components/icons";
@@ -103,7 +104,7 @@ function AuthorBio({
       className="bio-card"
       style={{ boxShadow: `5px 6px 0 ${author.color ?? "#8c5bd0"}` }}
     >
-      <Avatar author={author} size={90} />
+      <Avatar author={author} size={70} />
       <div className="bio-text">
         <h2>{author.display_name ?? author.username}</h2>
         <div className="bio-meta">
@@ -119,8 +120,33 @@ function AuthorBio({
   );
 }
 
+function FilterChip({
+  label,
+  onClear,
+  removeLabel,
+}: {
+  label: string;
+  onClear: () => void;
+  removeLabel: string;
+}) {
+  return (
+    <span className="filter-chip">
+      <span className="chip-text">{label}</span>
+      <button
+        type="button"
+        className="chip-x"
+        onClick={onClear}
+        aria-label={removeLabel}
+      >
+        <Icon.close size={14} />
+      </button>
+    </span>
+  );
+}
+
 export function HomePage() {
   const { t, countWorks } = useI18n();
+  const { user } = useAuth();
   const [section, setSection] = useState<SectionFilter>("all");
   const [authorFilter, setAuthorFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
@@ -157,16 +183,21 @@ export function HomePage() {
     ? works.filter((w) => w.author_username === activeAuthor.username).length
     : 0;
 
+  const sectionActive = section !== "all";
+  const authorActive = authorFilter !== "all";
+  const queryActive = query.trim() !== "";
+  const anyFilter = sectionActive || authorActive || queryActive;
+
+  const clearAll = () => {
+    setSection("all");
+    setAuthorFilter("all");
+    setQuery("");
+  };
+
   return (
     <div className="lisons-public home-shell">
       <header className="site-header">
-        <Logo
-          onClick={() => {
-            setSection("all");
-            setAuthorFilter("all");
-            setQuery("");
-          }}
-        />
+        <Logo onClick={clearAll} />
         <label className="search">
           <Icon.search size={18} />
           <input
@@ -174,11 +205,21 @@ export function HomePage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("search.placeholder")}
           />
+          {queryActive && (
+            <button
+              type="button"
+              className="search-clear"
+              onClick={() => setQuery("")}
+              aria-label={t("filter.remove")}
+            >
+              <Icon.close size={14} />
+            </button>
+          )}
         </label>
         <LanguageToggle />
       </header>
 
-      <TopNav home />
+      {user != null && <TopNav home />}
 
       <div className="home-layout app-bg">
         <aside className="section-panel">
@@ -192,82 +233,124 @@ export function HomePage() {
                   className={`section-link ${section === tab.value ? "active" : ""}`}
                   onClick={() => {
                     setSection(tab.value);
-                    setAuthorFilter("all");
                   }}
                 >
                   <span className="section-link-icon">
                     <IconCmp size={20} />
                   </span>
-                  {t(`section.${tab.value}.label`)}
+                  <span className="section-link-label">{t(`section.${tab.value}.label`)}</span>
                 </button>
               );
             })}
           </nav>
+
+          <div className="rail-divider" />
+
+          <div className="panel-label">{t("author.choose")}</div>
+          <nav className="author-rail">
+            <button
+              className={`author-pick ${authorFilter === "all" ? "active" : ""}`}
+              onClick={() => setAuthorFilter("all")}
+            >
+              <AllAvatar size={56} active={authorFilter === "all"} />
+              <span className="pick-name">{t("author.everyone")}</span>
+              <span className="pick-meta">{countWorks(works.length)}</span>
+            </button>
+            {authors.map((a) => (
+              <button
+                key={a.username}
+                className={`author-pick ${authorFilter === a.username ? "active" : ""}`}
+                onClick={() => setAuthorFilter(a.username)}
+              >
+                <Avatar author={a} size={56} active={authorFilter === a.username} />
+                <span className="pick-name">{a.display_name ?? a.username}</span>
+                <span className="pick-meta">
+                  {a.age != null ? t("author.years", { n: a.age }) : t("author.unknownAge")}
+                </span>
+              </button>
+            ))}
+          </nav>
+
+          {activeAuthor != null && (
+            <AuthorBio author={activeAuthor} workCount={activeAuthorWorkCount} />
+          )}
         </aside>
 
         <main className="home-main">
-          <div className="main-head">
-            <section className="author-bar">
-              <div className="filter-label">{t("author.choose")}</div>
-              <div className="author-filter">
-                <button className="author-pick" onClick={() => setAuthorFilter("all")}>
-                  <AllAvatar size={80} active={authorFilter === "all"} />
-                  <span className="pick-name">{t("author.everyone")}</span>
-                  <span className="pick-meta">{countWorks(works.length)}</span>
-                </button>
-                {authors.map((a) => (
+          <div className="section-bar">
+            <div className="section-heading">
+              <h1>{t(`section.${section}.h1`)}</h1>
+              <p>{t(`section.${section}.sub`)}</p>
+            </div>
+            <div className="bar-right">
+              {anyFilter && (
+                <div className="filter-chips">
+                  {sectionActive && (
+                    <FilterChip
+                      label={t("filter.section", { label: t(`section.${section}.label`) })}
+                      onClear={() => setSection("all")}
+                      removeLabel={t("filter.remove")}
+                    />
+                  )}
+                  {authorActive && (
+                    <FilterChip
+                      label={t("filter.author", {
+                        name:
+                          activeAuthor?.display_name ??
+                          activeAuthor?.username ??
+                          authorFilter,
+                      })}
+                      onClear={() => setAuthorFilter("all")}
+                      removeLabel={t("filter.remove")}
+                    />
+                  )}
+                  {queryActive && (
+                    <FilterChip
+                      label={t("filter.query", { q: query.trim() })}
+                      onClear={() => setQuery("")}
+                      removeLabel={t("filter.remove")}
+                    />
+                  )}
                   <button
-                    key={a.username}
-                    className="author-pick"
-                    onClick={() => setAuthorFilter(a.username)}
+                    type="button"
+                    className="filter-clear-all"
+                    onClick={clearAll}
                   >
-                    <Avatar author={a} size={80} active={authorFilter === a.username} />
-                    <span className="pick-name">{a.display_name ?? a.username}</span>
-                    <span className="pick-meta">
-                      {a.age != null ? t("author.years", { n: a.age }) : t("author.unknownAge")}
-                    </span>
+                    {t("filter.clearAll")}
                   </button>
-                ))}
+                </div>
+              )}
+              <div className="count-line">
+                {loadingWorks
+                  ? t("count.loading")
+                  : filtered.length === 0
+                    ? t("count.none")
+                    : `${countWorks(filtered.length)}${query ? t("count.forQuery", { q: query }) : ""}`}
               </div>
-            </section>
-
-            {activeAuthor ? (
-              <AuthorBio author={activeAuthor} workCount={activeAuthorWorkCount} />
-            ) : (
-              <div className="section-heading">
-                <h1>{t(`section.${section}.h1`)}</h1>
-                <p>{t(`section.${section}.sub`)}</p>
-              </div>
-            )}
-
-            <div className="count-line">
-              {loadingWorks
-                ? t("count.loading")
-                : filtered.length === 0
-                  ? t("count.none")
-                  : `${countWorks(filtered.length)}${query ? t("count.forQuery", { q: query }) : ""}`}
             </div>
           </div>
 
           <div className="shelf-scroll">
-            {!loadingWorks && filtered.length === 0 ? (
-              <div className="empty">
-                <div className="big">{t("empty.title")}</div>
-                <div>{t("empty.sub")}</div>
-              </div>
-            ) : GALLERY_SECTIONS.has(section) ? (
-              <div className="gallery">
-                {filtered.map((w) => (
-                  <DrawingTile key={w.id} work={w} />
-                ))}
-              </div>
-            ) : (
-              <div className="book-grid">
-                {filtered.map((w) => (
-                  <BookCard key={w.id} work={w} />
-                ))}
-              </div>
-            )}
+            <div className="shelf-inner">
+              {!loadingWorks && filtered.length === 0 ? (
+                <div className="empty">
+                  <div className="big">{t("empty.title")}</div>
+                  <div>{t("empty.sub")}</div>
+                </div>
+              ) : GALLERY_SECTIONS.has(section) ? (
+                <div className="gallery">
+                  {filtered.map((w) => (
+                    <DrawingTile key={w.id} work={w} />
+                  ))}
+                </div>
+              ) : (
+                <div className="book-grid">
+                  {filtered.map((w) => (
+                    <BookCard key={w.id} work={w} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </main>
       </div>
