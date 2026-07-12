@@ -4,6 +4,7 @@
     "config:recommended",
     "docker:pinDigests"
   ],
+  "mode": "full",
   "timezone": "America/Toronto",
   "schedule": ["before 6am on saturday"],
   "prConcurrentLimit": 5,
