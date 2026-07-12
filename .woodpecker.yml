@@ -29,6 +29,13 @@ steps:
       - npm run lint
       - npx tsc -b --force
 
+  - name: test-frontend
+    image: node:20-alpine
+    commands:
+      - cd frontend
+      - npm ci --no-audit --no-fund
+      - npx vitest run
+
   - name: secret-scan
     image: zricethezav/gitleaks:v8.30.1
     commands:

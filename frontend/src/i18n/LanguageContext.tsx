@@ -22,7 +22,7 @@ function isLang(value: string | null): value is Lang {
   return value != null && (LANGS as readonly string[]).includes(value);
 }
 
-function detectInitialLang(): Lang {
+export function detectInitialLang(): Lang {
   if (typeof window === "undefined") return "fr";
   const saved = window.localStorage.getItem(STORAGE_KEY);
   if (isLang(saved)) return saved;
@@ -31,7 +31,7 @@ function detectInitialLang(): Lang {
   return window.navigator.language?.toLowerCase().startsWith("en") ? "en" : "fr";
 }
 
-function interpolate(template: string, vars?: Vars): string {
+export function interpolate(template: string, vars?: Vars): string {
   if (vars == null) return template;
   return template.replace(/\{(\w+)\}/g, (match, name: string) =>
     name in vars ? String(vars[name]) : match,
