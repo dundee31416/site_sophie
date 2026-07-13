@@ -97,6 +97,48 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
 
+  # Offsite leg of 3-2-1: daily rclone sync of DB dumps + original scans to a
+  # versioned iDrive e2 bucket. ZFS + pg_dump both die with the host; this
+  # copy doesn't. Empty E2_* vars disable it (sidecar idles).
+  offsite-sync:
+    image: rclone/rclone:1.68
+    container_name: site_sophie_offsite
+    environment:
+      # Remote "e2" defined entirely by env vars — no rclone.conf on disk
+      RCLONE_CONFIG_E2_TYPE: s3
+      RCLONE_CONFIG_E2_PROVIDER: IDrive
+      RCLONE_CONFIG_E2_ACCESS_KEY_ID: ${E2_ACCESS_KEY_ID:-}
+      RCLONE_CONFIG_E2_SECRET_ACCESS_KEY: ${E2_SECRET_ACCESS_KEY:-}
+      RCLONE_CONFIG_E2_ENDPOINT: ${E2_ENDPOINT:-}
+      E2_BUCKET: ${E2_BUCKET:-}
+      # Separate healthchecks.io check from the pg_dump one — a shared check
+      # cannot tell which leg died. Empty disables the ping.
+      OFFSITE_HEALTHCHECKS_URL: ${OFFSITE_HEALTHCHECKS_URL:-}
+    volumes:
+      # read-only: the offsite leg must never be able to write app data
+      - ./backups:/data/backups:ro
+      - ./storage:/data/storage:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          if [ -z "$$E2_BUCKET" ] || [ -z "$$RCLONE_CONFIG_E2_ACCESS_KEY_ID" ]; then
+            echo "offsite disabled (E2_* not set)"
+          elif rclone sync /data/backups "e2:$$E2_BUCKET/lisons/backups" --fast-list \
+            && rclone sync /data/storage "e2:$$E2_BUCKET/lisons/storage" --fast-list; then
+            echo "offsite sync ok: $$(date)"
+            if [ -n "$$OFFSITE_HEALTHCHECKS_URL" ]; then
+              wget -q -T 10 -O /dev/null "$$OFFSITE_HEALTHCHECKS_URL" || true
+            fi
+          else
+            echo "offsite sync FAILED: $$(date)"
+          fi
+          sleep 86400
+        done
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
   frontend:
     image: ghcr.io/dundee31416/site_sophie-frontend:${IMAGE_TAG:-latest}
     container_name: site_sophie_frontend
