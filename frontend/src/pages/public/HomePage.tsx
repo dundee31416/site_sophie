@@ -51,8 +51,9 @@ function BookCard({ work }: { work: PublicWorkSummary }) {
             cover_path: thumbUrl(effectiveCover),
           }}
           author={{
-            username: work.author_username,
+            color: work.author_color,
             display_name: work.author_display_name,
+            username: work.author_username,
           }}
         />
       </div>
@@ -197,9 +198,8 @@ export function HomePage() {
   return (
     <div className="lisons-public home-shell">
       <header className="site-header">
-        <Logo onClick={clearAll} />
         <label className="search">
-          <Icon.search size={18} />
+          <Icon.search size={16} />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -216,6 +216,7 @@ export function HomePage() {
             </button>
           )}
         </label>
+        <Logo onClick={clearAll} />
         <LanguageToggle />
       </header>
 
@@ -244,17 +245,17 @@ export function HomePage() {
             })}
           </nav>
 
-          <div className="rail-divider" />
-
           <div className="panel-label">{t("author.choose")}</div>
           <nav className="author-rail">
             <button
               className={`author-pick ${authorFilter === "all" ? "active" : ""}`}
               onClick={() => setAuthorFilter("all")}
             >
-              <AllAvatar size={56} active={authorFilter === "all"} />
-              <span className="pick-name">{t("author.everyone")}</span>
-              <span className="pick-meta">{countWorks(works.length)}</span>
+              <AllAvatar size={48} active={authorFilter === "all"} />
+              <span className="pick-text">
+                <span className="pick-name">{t("author.everyone")}</span>
+                <span className="pick-meta">{countWorks(works.length)}</span>
+              </span>
             </button>
             {authors.map((a) => (
               <button
@@ -262,10 +263,12 @@ export function HomePage() {
                 className={`author-pick ${authorFilter === a.username ? "active" : ""}`}
                 onClick={() => setAuthorFilter(a.username)}
               >
-                <Avatar author={a} size={56} active={authorFilter === a.username} />
-                <span className="pick-name">{a.display_name ?? a.username}</span>
-                <span className="pick-meta">
-                  {a.age != null ? t("author.years", { n: a.age }) : t("author.unknownAge")}
+                <Avatar author={a} size={48} active={authorFilter === a.username} />
+                <span className="pick-text">
+                  <span className="pick-name">{a.display_name ?? a.username}</span>
+                  <span className="pick-meta">
+                    {a.age != null ? t("author.years", { n: a.age }) : t("author.unknownAge")}
+                  </span>
                 </span>
               </button>
             ))}
@@ -332,7 +335,28 @@ export function HomePage() {
 
           <div className="shelf-scroll">
             <div className="shelf-inner">
-              {!loadingWorks && filtered.length === 0 ? (
+              {loadingWorks ? (
+                GALLERY_SECTIONS.has(section) ? (
+                  <div className="gallery">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="gallery-tile skeleton-tile" aria-hidden="true">
+                        <div className="skeleton-thumb" />
+                        <div className="skeleton-line" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="book-grid">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="book-card skeleton-card" aria-hidden="true">
+                        <div className="skeleton-cover" />
+                        <div className="skeleton-line" />
+                        <div className="skeleton-line skeleton-line-sm" />
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : filtered.length === 0 ? (
                 <div className="empty">
                   <div className="big">{t("empty.title")}</div>
                   <div>{t("empty.sub")}</div>

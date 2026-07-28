@@ -20,6 +20,7 @@ interface WorkInfo {
 }
 
 interface AuthorInfo {
+  color: string | null;
   display_name: string | null;
   username: string;
 }
@@ -87,33 +88,38 @@ function Emblem({ shape, color }: { shape: EmblemShape | string | null; color: s
   }
 }
 
-const ACCENTS = ["#f4c020", "#e8443b", "#2b7fd4", "#4caf63", "#ec6aa8", "#fff"];
-
-function accentFor(work: WorkInfo): string {
-  const baseColor = work.color ?? "#8c5bd0";
-  const i = (work.title.length + work.slug.length) % ACCENTS.length;
-  let a = ACCENTS[i];
-  if (a.toLowerCase() === baseColor.toLowerCase()) {
-    a = ACCENTS[(i + 2) % ACCENTS.length];
-  }
-  return a;
+function darken(hex: string, amount: number): string {
+  const clean = hex.replace("#", "");
+  const norm = clean.length === 3
+    ? clean.split("").map((c) => c + c).join("")
+    : clean;
+  const num = parseInt(norm, 16);
+  const r = Math.max(0, ((num >> 16) & 0xff) - amount);
+  const g = Math.max(0, ((num >> 8) & 0xff) - amount);
+  const b = Math.max(0, (num & 0xff) - amount);
+  return `rgb(${r}, ${g}, ${b})`;
 }
 
 export function CoverArt({ work, author }: Props) {
-  const accent = accentFor(work);
-  const baseColor = work.color ?? "#8c5bd0";
+  // Author identity drives the cover color, so every book by the same child
+  // shares the same base — the shelf reads as personal, not random.
+  const baseColor = author.color ?? work.color ?? "#8c5bd0";
+  const deepColor = darken(baseColor, 32);
+  const monogram = (author.display_name ?? author.username).charAt(0).toUpperCase();
+
   const placeholder = (
-    <div className="cover-art" style={{ background: baseColor }}>
+    <div
+      className="cover-art"
+      style={{ background: `linear-gradient(155deg, ${baseColor}, ${deepColor})` }}
+    >
       <div className="cover-paper" />
-      <div className="cover-emblem">
+      <div className="cover-frame" />
+      <div className="cover-medallion">
         <svg viewBox="0 0 64 64" width="100%" height="100%" aria-hidden="true">
-          <Emblem shape={work.shape} color={accent} />
+          <Emblem shape={work.shape} color={baseColor} />
         </svg>
       </div>
-      <div className="cover-foot">
-        <div className="cover-title">{work.title}</div>
-        <div className="cover-by">par {author.display_name ?? author.username}</div>
-      </div>
+      <div className="cover-monogram" aria-hidden="true">{monogram}</div>
       <div className="cover-spine" />
     </div>
   );

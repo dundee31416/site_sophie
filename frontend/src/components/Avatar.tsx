@@ -1,4 +1,5 @@
 import { thumbUrl } from "../api/images";
+import { Icon } from "./icons";
 import { ImageFallback } from "./ImageFallback";
 
 interface AuthorInfo {
@@ -50,7 +51,7 @@ export function AllAvatar({ size = 56, active = false }: { size?: number; active
         boxShadow: active ? "0 0 0 4px #fff, 0 0 0 8px #2a2622" : undefined,
       }}
     >
-      <span style={{ fontSize: size * 0.34 }}>Tous</span>
+      <Icon.grid size={Math.round(size * 0.5)} />
     </div>
   );
 }

@@ -19,7 +19,7 @@
   --hand: "Patrick Hand", "Baloo 2", cursive;
   --ui: "Nunito", system-ui, sans-serif;
   --rail-w: 250px;
-  --shelf-max: 1400px;
+  --shelf-max: 1180px;
   font-family: var(--ui);
   color: var(--pub-ink);
 }
@@ -57,25 +57,28 @@
 /* ---------------- HEADER + LOGO + SEARCH ---------------- */
 .lisons-public .site-header {
   flex: none;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 20px;
-  padding: 18px 30px;
+  gap: 24px;
+  padding: 16px 30px 14px;
   background: var(--paper);
   border-bottom: 3px solid var(--pub-ink);
   z-index: 30;
 }
 
 .lisons-public .logo {
+  justify-self: center;
   display: flex;
   align-items: baseline;
   gap: 2px;
   font-family: var(--display);
   font-weight: 800;
-  font-size: 34px;
-  letter-spacing: -0.5px;
+  font-size: 48px;
+  letter-spacing: -1px;
   cursor: pointer;
   user-select: none;
+  line-height: 1;
 }
 .lisons-public .logo .l0 { color: var(--red); }
 .lisons-public .logo .l1 { color: var(--blue); }
@@ -87,25 +90,30 @@
 .lisons-public .logo:hover .bang { transform: rotate(-12deg) scale(1.15); transition: transform .2s; }
 .lisons-public .logo-sub {
   font-family: var(--hand);
-  font-size: 16px;
+  font-size: 17px;
   color: var(--pub-ink-soft);
-  margin-left: 8px;
+  margin-left: 12px;
   transform: rotate(-2deg);
   white-space: nowrap;
 }
 
 .lisons-public .search {
-  margin-left: auto;
+  justify-self: start;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  background: rgba(255, 255, 255, .7);
+  border: 1.5px solid var(--pub-line);
+  border-radius: 999px;
+  padding: 7px 14px;
+  width: min(300px, 100%);
+  transition: border-color .15s, background .15s;
+}
+.lisons-public .search:hover { border-color: #d6c9a8; }
+.lisons-public .search:focus-within {
+  border-color: var(--pub-ink);
   background: #fff;
-  border: 3px solid var(--pub-ink);
-  border-radius: 40px;
-  padding: 9px 18px;
-  width: min(340px, 40vw);
-  box-shadow: 3px 3px 0 var(--pub-ink);
 }
 .lisons-public .search input {
   flex: 1;
@@ -113,22 +121,23 @@
   border: none;
   outline: none;
   font-family: var(--ui);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   background: transparent;
   line-height: 1.2;
+  color: var(--pub-ink);
 }
-.lisons-public .search input::placeholder { color: #b7ad9f; }
+.lisons-public .search input::placeholder { color: #b7ad9f; font-weight: 500; }
 .lisons-public .search > svg { color: var(--pub-ink-soft); flex: none; display: block; }
 .lisons-public .search-clear {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: var(--pub-ink);
+  background: var(--pub-ink-soft);
   color: #fff;
   border: none;
   padding: 0;
@@ -138,6 +147,7 @@
 
 /* FR / EN language switch */
 .lisons-public .lang-toggle {
+  justify-self: end;
   flex: none;
   display: flex;
   border: 3px solid var(--pub-ink);
@@ -160,7 +170,7 @@
 }
 .lisons-public .lang-toggle button + button { border-left: 3px solid var(--pub-line); }
 .lisons-public .lang-toggle button:hover { color: var(--pub-ink); }
-.lisons-public .lang-toggle button.on { background: var(--pub-ink); color: #fff; }
+.lisons-public .lang-toggle button.on { background: var(--yellow); color: var(--pub-ink); }
 
 /* ---------------- HOME LAYOUT (sidebar + main) ---------------- */
 .lisons-public .home-layout {
@@ -182,16 +192,19 @@
   gap: 14px;
 }
 .lisons-public .panel-label {
-  font-family: var(--hand);
-  font-size: 19px;
-  color: var(--pub-ink-soft);
-  margin: 0 0 2px 6px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--pub-ink);
+  margin: 0 0 8px 6px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--yellow);
+  align-self: flex-start;
 }
-.lisons-public .rail-divider {
-  height: 0;
-  border-top: 2px dashed var(--pub-line);
-  margin: 6px 4px 2px;
-}
+.lisons-public .panel-label + * { margin-top: 0; }
+.lisons-public .panel-label ~ .panel-label { margin-top: 22px; }
 .lisons-public .section-nav {
   display: flex;
   flex-direction: column;
@@ -257,28 +270,34 @@
   border-color: var(--pub-ink);
   box-shadow: 2px 2px 0 var(--pub-ink);
 }
+.lisons-public .author-rail .author-pick > .avatar {
+  flex: none;
+}
+.lisons-public .author-rail .author-pick .pick-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
 .lisons-public .author-rail .author-pick .pick-name {
   font-family: var(--display);
   font-weight: 700;
   font-size: 15px;
-  line-height: 1.05;
+  line-height: 1.15;
   text-align: left;
-  margin-top: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .lisons-public .author-rail .author-pick .pick-meta {
   font-size: 12.5px;
   color: var(--pub-ink-soft);
   font-weight: 700;
   text-align: left;
-  margin-top: 0;
-}
-.lisons-public .author-rail .author-pick > .avatar {
-  flex: none;
-}
-.lisons-public .author-rail .author-pick > span:not(.avatar) {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -413,8 +432,8 @@
 }
 .lisons-public .avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .lisons-public .avatar-all {
-  background: repeating-linear-gradient(45deg, #fff, #fff 6px, #f1ead8 6px, #f1ead8 12px);
-  color: var(--pub-ink);
+  background: var(--pub-ink);
+  color: #fff;
 }
 
 /* ---------------- BIO CARD (lives in the rail under the author picker) ---------------- */
@@ -471,7 +490,7 @@
 
 .lisons-public .book-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 38px 30px;
 }
 .lisons-public .book-card {
@@ -518,7 +537,9 @@
   flex: none;
 }
 
-/* COVER ART (placeholder when no cover_path) */
+/* COVER ART (placeholder when no cover_path).
+   The colour comes from the author, not the work, so every book by the same
+   child shares the same base — the shelf feels personal rather than random. */
 .lisons-public .cover-art {
   position: relative;
   aspect-ratio: 3 / 4;
@@ -526,20 +547,33 @@
   border: 3px solid var(--pub-ink);
   overflow: hidden;
   box-shadow: 6px 7px 0 rgba(47, 42, 38, .85);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
   transition: box-shadow .18s, transform .18s;
 }
 .lisons-public .book-card:hover .cover-art {
   box-shadow: 9px 11px 0 rgba(47, 42, 38, .85);
 }
+/* Faint dotted paper texture like the app background, over the gradient. */
 .lisons-public .cover-paper {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 80% 12%, rgba(255, 255, 255, .28), transparent 45%),
-    radial-gradient(circle at 15% 85%, rgba(0, 0, 0, .12), transparent 42%);
+  background-image:
+    radial-gradient(rgba(255, 255, 255, .18) 1px, transparent 1px),
+    radial-gradient(circle at 82% 14%, rgba(255, 255, 255, .32), transparent 50%),
+    radial-gradient(circle at 18% 90%, rgba(0, 0, 0, .18), transparent 55%);
+  background-size: 14px 14px, 100% 100%, 100% 100%;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+/* Inner double-line frame — makes it read as a bound cover, not a swatch. */
+.lisons-public .cover-frame {
+  position: absolute;
+  inset: 10px;
+  border: 1.5px solid rgba(255, 255, 255, .55);
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, .1),
+    inset 0 0 0 6px transparent;
+  pointer-events: none;
 }
 .lisons-public .cover-spine {
   position: absolute;
@@ -547,62 +581,70 @@
   bottom: 0;
   left: 0;
   width: 9px;
-  background: rgba(0, 0, 0, .18);
-  border-right: 1px solid rgba(0, 0, 0, .12);
+  background: linear-gradient(90deg, rgba(0, 0, 0, .32), rgba(0, 0, 0, .08));
+  border-right: 1px solid rgba(0, 0, 0, .15);
+  pointer-events: none;
 }
-.lisons-public .cover-emblem {
+/* Central medallion: a paper disc holding the emblem, like a book-plate. */
+.lisons-public .cover-medallion {
   position: absolute;
-  top: 8%;
-  left: 0;
-  right: 0;
-  height: 42%;
+  top: 50%;
+  left: 50%;
+  width: 54%;
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -52%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, #fff, var(--paper-2) 65%, #f2e8d0 100%);
+  border: 2.5px solid rgba(0, 0, 0, .35);
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, .18),
+    2px 3px 0 rgba(0, 0, 0, .2);
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: .92;
-  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, .18));
+  padding: 12%;
 }
-.lisons-public .cover-emblem svg { width: 52%; height: 100%; }
-.lisons-public .cover-foot {
-  position: relative;
-  z-index: 2;
-  padding: 16px 14px 14px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, .28) 55%);
-}
-.lisons-public .cover-title {
-  font-family: var(--hand);
-  color: #fff;
-  font-size: 21px;
-  line-height: 1.02;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, .4);
-  text-wrap: balance;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.lisons-public .cover-by {
-  font-family: var(--hand);
-  color: rgba(255, 255, 255, .95);
+.lisons-public .cover-medallion svg { width: 100%; height: 100%; }
+/* Author monogram sits bottom-right like a stamp. */
+.lisons-public .cover-monogram {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .92);
+  border: 2px solid var(--pub-ink);
+  color: var(--pub-ink);
+  font-family: var(--display);
+  font-weight: 800;
   font-size: 15px;
-  margin-top: 5px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 1.5px 1.5px 0 rgba(0, 0, 0, .3);
+  pointer-events: none;
 }
 
-/* NEW badge */
+/* NEW badge — small pill pinned inside the top-left of the cover frame. */
 .lisons-public .new-badge {
   position: absolute;
-  top: -12px;
-  right: -10px;
+  top: 10px;
+  left: 10px;
   z-index: 3;
   background: var(--yellow);
   color: var(--pub-ink);
   font-family: var(--display);
   font-weight: 800;
-  font-size: 13px;
-  padding: 7px 12px;
-  border: 3px solid var(--pub-ink);
+  font-size: 11px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 2.5px solid var(--pub-ink);
   border-radius: 30px;
-  transform: rotate(9deg);
   box-shadow: 2px 2px 0 var(--pub-ink);
 }
 
@@ -616,6 +658,39 @@
   font-size: 30px;
   color: var(--pub-ink);
   margin-bottom: 6px;
+}
+
+/* Loading skeletons: same silhouette as real cards, gently pulsing. */
+.lisons-public .skeleton-card,
+.lisons-public .skeleton-tile { cursor: default; }
+.lisons-public .skeleton-card:hover { transform: none; }
+.lisons-public .skeleton-tile:hover { transform: none; }
+.lisons-public .skeleton-cover {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 6px;
+  border: 3px solid var(--pub-line);
+  background: var(--paper-2);
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+.lisons-public .skeleton-thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: var(--paper-2);
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+.lisons-public .skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--paper-2);
+  margin-top: 10px;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+.lisons-public .skeleton-line-sm { width: 55%; height: 10px; margin-top: 6px; }
+@keyframes skeletonPulse {
+  0%, 100% { opacity: .55; }
+  50% { opacity: .9; }
 }
 
 /* COVER ART (real image) */
@@ -1119,10 +1194,9 @@
     gap: 10px;
   }
   .lisons-public .panel-label {
-    font-size: 16px;
-    margin: 0 0 2px 4px;
+    margin: 0 0 6px 4px;
   }
-  .lisons-public .rail-divider { display: none; }
+  .lisons-public .panel-label ~ .panel-label { margin-top: 12px; }
   .lisons-public .section-nav {
     flex-direction: row;
     gap: 8px;
@@ -1168,6 +1242,19 @@
 }
 
 @media (max-width: 720px) {
+  .lisons-public .site-header {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "logo   logo"
+      "search lang";
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .lisons-public .site-header .logo { grid-area: logo; font-size: 36px; letter-spacing: -.5px; }
+  .lisons-public .site-header .search { grid-area: search; justify-self: stretch; width: 100%; padding: 6px 12px; }
+  .lisons-public .site-header .lang-toggle { grid-area: lang; }
+  .lisons-public .search input { font-size: 13px; }
+  .lisons-public .logo-sub { display: none; }
   .lisons-public .nav-arrow { width: 48px; height: 48px; }
   .lisons-public .nav-arrow-prev { left: 6px; }
   .lisons-public .nav-arrow-next { right: 6px; }
