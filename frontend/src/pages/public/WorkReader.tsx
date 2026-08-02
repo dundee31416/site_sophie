@@ -40,6 +40,7 @@ function renderDigital(
   workTitle: string,
   pageIdx: number,
   variantField: VariantField,
+  section: string,
   emptyLabel: string,
 ) {
   // Legacy: an HTML file already laid out as a page.
@@ -55,7 +56,9 @@ function renderDigital(
   }
 
   const variantSrc = variantField != null ? page[variantField] : null;
-  const imageSrc = variantSrc ?? page.scan_path;
+  // Books are text-first in digital mode: the scan lives under the "Original"
+  // toggle. Comics/drawings/crafts still need the image.
+  const imageSrc = section === "book" ? null : (variantSrc ?? page.scan_path);
   const text = page.text;
 
   return (
@@ -149,7 +152,10 @@ export function WorkReader() {
         : null;
   const hasAnyVariantImage =
     variantField != null && (work?.pages.some((p) => p[variantField] != null) ?? false);
-  const hasDigitalContent = hasAnyHtml || hasAnyText || hasAnyVariantImage;
+  // Books hide their scan in digital mode (text-first), so a book without any
+  // text has no digital content to show — the toggle would land on a blank page.
+  const isBook = work?.section === "book";
+  const hasDigitalContent = hasAnyHtml || hasAnyText || (!isBook && hasAnyVariantImage);
 
   const isPaginated = work?.section === "book" || work?.section === "comic";
   // Two-page spread on wide screens for multi-page books/comics.
@@ -270,12 +276,12 @@ export function WorkReader() {
   const leftPage = work.pages[leftIdx];
   const rightPage = rightIdx < total ? work.pages[rightIdx] : null;
 
-  function renderPage(p: PageResponse | undefined | null) {
+  function renderPage(p: PageResponse | undefined | null, idx: number) {
     if (p == null) return <div className="page-blank" />;
     if (mode === "digital") {
-      return renderDigital(p, work!.title, leftIdx, variantField, t("reader.emptyPage"));
+      return renderDigital(p, work!.title, idx, variantField, work!.section, t("reader.emptyPage"));
     }
-    return renderScan(p, work!.title, leftIdx, t("reader.emptyPage"));
+    return renderScan(p, work!.title, idx, t("reader.emptyPage"));
   }
 
   const atStart = pageIdx === 0;
@@ -335,8 +341,8 @@ export function WorkReader() {
                 key={`spread-${mode}-${leftIdx}`}
                 className={`page-pair ${dir > 0 ? "page-flip-enter" : "page-flip-back"}`}
               >
-                <div className="page-side page-side-l">{renderPage(leftPage)}</div>
-                <div className="page-side page-side-r">{renderPage(rightPage)}</div>
+                <div className="page-side page-side-l">{renderPage(leftPage, leftIdx)}</div>
+                <div className="page-side page-side-r">{renderPage(rightPage, rightIdx)}</div>
                 <div className="page-gutter" aria-hidden />
               </div>
             ) : (
@@ -344,7 +350,7 @@ export function WorkReader() {
                 key={`${mode}-${pageIdx}`}
                 className={`page-inner ${dir > 0 ? "page-flip-enter" : "page-flip-back"}`}
               >
-                {leftPage == null ? <p>{t("reader.noPage")}</p> : renderPage(leftPage)}
+                {leftPage == null ? <p>{t("reader.noPage")}</p> : renderPage(leftPage, leftIdx)}
               </div>
             )}
           </div>

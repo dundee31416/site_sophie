@@ -4,10 +4,10 @@ import { thumbUrl } from "../../api/images";
 import * as publicApi from "../../api/public";
 import type { PublicAuthor, PublicWorkSummary } from "../../api/public";
 import type { WorkSection } from "../../api/works";
-import { useAuth } from "../../auth/AuthContext";
 import { AllAvatar, Avatar } from "../../components/Avatar";
 import { CoverArt } from "../../components/CoverArt";
 import { Icon } from "../../components/icons";
+import { ImageFallback } from "../../components/ImageFallback";
 import { LanguageToggle } from "../../components/LanguageToggle";
 import { Logo } from "../../components/Logo";
 import { TopNav } from "../../components/TopNav";
@@ -77,11 +77,9 @@ function DrawingTile({ work }: { work: PublicWorkSummary }) {
       className="gallery-tile"
       style={{ textDecoration: "none", color: "inherit" }}
     >
-      {src ? (
-        <img src={src} alt={work.title} loading="lazy" />
-      ) : (
+      <ImageFallback src={src} alt={work.title} loading="lazy">
         <div style={{ aspectRatio: "1 / 1", background: "var(--paper-2)" }} />
-      )}
+      </ImageFallback>
       <div className="meta">
         {work.title}
         <div className="author">
@@ -147,7 +145,6 @@ function FilterChip({
 
 export function HomePage() {
   const { t, countWorks } = useI18n();
-  const { user } = useAuth();
   const [section, setSection] = useState<SectionFilter>("all");
   const [authorFilter, setAuthorFilter] = useState<string>("all");
   const [query, setQuery] = useState("");
@@ -220,7 +217,7 @@ export function HomePage() {
         <LanguageToggle />
       </header>
 
-      {user != null && <TopNav home />}
+      <TopNav home />
 
       <div className="home-layout app-bg">
         <aside className="section-panel">
