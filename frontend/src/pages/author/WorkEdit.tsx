@@ -194,6 +194,10 @@ export function WorkEdit() {
     e.target.value = "";
     if (list == null || work == null) return;
     const arr = Array.from(list);
+    // Empty FileList = user cancelled the picker, or every candidate was
+    // filtered out by `accept`. Bail before we send an empty multipart body
+    // that the backend would (rightly) reject with a 422.
+    if (arr.length === 0) return;
     if (
       (work.section === "drawing" || work.section === "craft") &&
       (arr.length !== 1 || work.pages.length >= 1)

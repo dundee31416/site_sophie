@@ -143,6 +143,11 @@ export function restyleCover(
 }
 
 export function uploadPages(workId: number, files: File[]): Promise<PageResponse[]> {
+  // An empty FormData would omit the `files` field entirely and the backend
+  // returns a confusing 422 "Field required". Fail loudly on the client instead.
+  if (files.length === 0) {
+    return Promise.reject(new ApiError(400, "Aucun fichier sélectionné.", null));
+  }
   const form = new FormData();
   for (const f of files) form.append("files", f);
   return uploadMultipart<PageResponse[]>(`/api/me/works/${workId}/pages`, form);
