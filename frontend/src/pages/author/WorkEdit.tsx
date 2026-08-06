@@ -190,14 +190,12 @@ export function WorkEdit() {
   }
 
   async function onPagesChange(e: ChangeEvent<HTMLInputElement>) {
-    const list = e.target.files;
+    // `input.files` is a live FileList that mutates in place when the input's
+    // value is cleared. Snapshot into an Array *before* resetting the input,
+    // otherwise `arr` ends up empty and the upload silently no-ops.
+    const arr = e.target.files == null ? [] : Array.from(e.target.files);
     e.target.value = "";
-    if (list == null || work == null) return;
-    const arr = Array.from(list);
-    // Empty FileList = user cancelled the picker, or every candidate was
-    // filtered out by `accept`. Bail before we send an empty multipart body
-    // that the backend would (rightly) reject with a 422.
-    if (arr.length === 0) return;
+    if (work == null || arr.length === 0) return;
     if (
       (work.section === "drawing" || work.section === "craft") &&
       (arr.length !== 1 || work.pages.length >= 1)
