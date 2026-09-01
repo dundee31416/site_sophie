@@ -14,7 +14,7 @@ when:
 
 steps:
   - name: test-backend
-    image: python:3.12-slim
+    image: python:3.12-slim@sha256:97490e383c4cffb12825431fa24e3d2b70e39fd691a8e33c46bf4c18edca3998
     commands:
       - cd backend
       - pip install --quiet --no-cache-dir -r requirements-dev.txt
@@ -22,7 +22,7 @@ steps:
       - pytest -q
 
   - name: lint-frontend
-    image: node:20-alpine
+    image: node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
     commands:
       - cd frontend
       - npm ci --no-audit --no-fund
@@ -30,32 +30,32 @@ steps:
       - npx tsc -b --force
 
   - name: test-frontend
-    image: node:20-alpine
+    image: node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
     commands:
       - cd frontend
       - npm ci --no-audit --no-fund
       - npx vitest run
 
   - name: secret-scan
-    image: zricethezav/gitleaks:v8.30.1
+    image: zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
     commands:
       - gitleaks detect --source . --no-banner --redact
 
   - name: audit-backend-deps
-    image: python:3.12-slim
+    image: python:3.12-slim@sha256:97490e383c4cffb12825431fa24e3d2b70e39fd691a8e33c46bf4c18edca3998
     commands:
       - pip install --quiet --no-cache-dir pip-audit
       - pip-audit -r backend/requirements.txt
 
   - name: audit-frontend-deps
-    image: node:20-alpine
+    image: node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
     commands:
       - cd frontend
       # audits package-lock.json directly; no node_modules install needed
       - npm audit --omit=dev --audit-level=high
 
   - name: build-backend
-    image: plugins/docker
+    image: plugins/docker@sha256:7a8e188c7dcaf15842d2a0bc22bf08d16f6a01279d8bb53c26f58afa17748458
     settings:
       repo: ghcr.io/dundee31416/site_sophie-backend
       registry: ghcr.io
@@ -73,7 +73,7 @@ steps:
         branch: main
 
   - name: build-frontend
-    image: plugins/docker
+    image: plugins/docker@sha256:7a8e188c7dcaf15842d2a0bc22bf08d16f6a01279d8bb53c26f58afa17748458
     settings:
       repo: ghcr.io/dundee31416/site_sophie-frontend
       registry: ghcr.io
@@ -92,7 +92,7 @@ steps:
         branch: main
 
   - name: scan-images
-    image: aquasec/trivy:0.72.0
+    image: aquasec/trivy:0.72.0@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f
     environment:
       TRIVY_USERNAME:
         from_secret: docker_username
@@ -106,7 +106,7 @@ steps:
         branch: main
 
   - name: prepare-deploy-dir
-    image: appleboy/drone-ssh
+    image: appleboy/drone-ssh@sha256:bf3b991d1778247754439739bb136b7be4fbdbafd58fe6f23bc36e4204598feb
     settings:
       host:
         from_secret: deploy_host
@@ -125,7 +125,7 @@ steps:
         branch: main
 
   - name: copy-compose
-    image: appleboy/drone-scp
+    image: appleboy/drone-scp@sha256:0f6b3d49dd57f1ea2ca0ae573e54c4ad6575e032746a73661ba944d9dbf430ad
     settings:
       host:
         from_secret: deploy_host
@@ -142,7 +142,7 @@ steps:
         branch: main
 
   - name: deploy
-    image: appleboy/drone-ssh
+    image: appleboy/drone-ssh@sha256:bf3b991d1778247754439739bb136b7be4fbdbafd58fe6f23bc36e4204598feb
     settings:
       host:
         from_secret: deploy_host
