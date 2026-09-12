@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     container_name: site_sophie_pg
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -62,7 +62,7 @@ services:
   # Nightly logical backups. ZFS snapshots cover disaster recovery; pg_dump
   # covers "the app corrupted its own data" and survives dataset-level mistakes.
   db-backup:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     container_name: site_sophie_db_backup
     depends_on:
       postgres:
@@ -101,7 +101,7 @@ services:
   # versioned iDrive e2 bucket. ZFS + pg_dump both die with the host; this
   # copy doesn't. Empty E2_* vars disable it (sidecar idles).
   offsite-sync:
-    image: rclone/rclone:1.68
+    image: rclone/rclone:1.68@sha256:74c51b8817e5431bd6d7ed27cb2a50d8ee78d77f6807b72a41ef6f898845942b
     container_name: site_sophie_offsite
     environment:
       # Remote "e2" defined entirely by env vars — no rclone.conf on disk
