@@ -14,7 +14,7 @@ when:
 
 steps:
   - name: test-backend
-    image: python:3.12-slim
+    image: python:3.15-slim@sha256:d802f03223b9e00604cd54574bcac1a4638914c43683d3f0afd6ebee35f25313
     commands:
       - cd backend
       - pip install --quiet --no-cache-dir -r requirements-dev.txt
@@ -42,7 +42,7 @@ steps:
       - gitleaks detect --source . --no-banner --redact
 
   - name: audit-backend-deps
-    image: python:3.12-slim
+    image: python:3.15-slim@sha256:d802f03223b9e00604cd54574bcac1a4638914c43683d3f0afd6ebee35f25313
     commands:
       - pip install --quiet --no-cache-dir pip-audit
       - pip-audit -r backend/requirements.txt
@@ -92,7 +92,7 @@ steps:
         branch: main
 
   - name: scan-images
-    image: aquasec/trivy:0.72.0
+    image: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
     environment:
       TRIVY_USERNAME:
         from_secret: docker_username
