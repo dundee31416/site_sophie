@@ -101,7 +101,7 @@ services:
   # versioned iDrive e2 bucket. ZFS + pg_dump both die with the host; this
   # copy doesn't. Empty E2_* vars disable it (sidecar idles).
   offsite-sync:
-    image: rclone/rclone:1.68
+    image: rclone/rclone:1.76@sha256:7cbeec24a44f206067597c0368be4de90ae19a64d5113c7d1938bd737a81e466
     container_name: site_sophie_offsite
     environment:
       # Remote "e2" defined entirely by env vars — no rclone.conf on disk
